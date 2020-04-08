@@ -1,0 +1,32 @@
+{
+  "rules": [
+    {
+      "rulePriority": 10,
+      "description": "keep the last few prod images",
+      "selection": {
+        "tagStatus": "tagged",
+        "countType": "imageCountMoreThan",
+        "tagPrefixList": [
+          "prod"
+        ],
+        "countNumber": 10
+      },
+      "action": {
+        "type": "expire"
+      }
+    },
+    {
+      "rulePriority": 20,
+      "description": "keep images for 30 days",
+      "selection": {
+        "tagStatus": "any",
+        "countType": "sinceImagePushed",
+        "countUnit": "days",
+        "countNumber": 30
+      },
+      "action": {
+        "type": "expire"
+      }
+    }
+  ]
+}

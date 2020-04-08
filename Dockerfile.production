@@ -1,0 +1,5 @@
+FROM openjdk:11
+COPY ./build/libs/loan-eligibility-service-0.0.1-SNAPSHOT.jar /loan-eligibility-service.jar
+WORKDIR /
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "loan-eligibility-service.jar"]
