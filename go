@@ -202,7 +202,13 @@ add_container_tag() {
   local new_image_tag=$3
 
   (
-    assume_role $(account_id_for_name "tools") "deploy-app"
+    assume_role $(account_id_for_name "tools") "push-containers"
+
+    local image_manifest=$(aws ecr batch-get-image --region ap-southeast-1 \
+                                                   --repository-name ${repository_name} \
+                                                   --image-ids imageTag=${image_tag} \
+                                                   --query 'images[].imageManifest' \
+                                                   --output text)
 
     aws ecr put-image --region ap-southeast-1 \
                       --repository-name ${repository_name} \

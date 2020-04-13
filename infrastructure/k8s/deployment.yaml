@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: loan-eligibility
-          image: 688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/loan-eligibility-service:latest
+          image: 688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/coreplatform/loan-eligibility-service:latest
           imagePullPolicy: Always
           readinessProbe:
             httpGet:
