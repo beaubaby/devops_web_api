@@ -10,8 +10,8 @@ ARGS=${@:2}
 
 account_id_for_name() {
   case $1 in
-      'dev') echo "001509639863";;
-      'qa') echo "001509639863";;
+      'dev') echo "259510286099";;
+      'qa') echo "259510286099";;
       'prod') echo "978668668395";;
       'tools') echo "688318228301";;
   esac
@@ -153,7 +153,7 @@ task_containerize() {
 
 help__push_container="push image to ECR"
 task_push_container() {
-  push-container "688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/loan-eligibility-service" loan-eligibility-service
+  push-container "688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/coreplatform/loan-eligibility-service" loan-eligibility-service
 }
 
 tf() {
@@ -202,13 +202,7 @@ add_container_tag() {
   local new_image_tag=$3
 
   (
-    assume_role $(account_id_for_name "tools") "push-containers"
-
-    local image_manifest=$(aws ecr batch-get-image --region ap-southeast-1 \
-                                                   --repository-name ${repository_name} \
-                                                   --image-ids imageTag=${image_tag} \
-                                                   --query 'images[].imageManifest' \
-                                                   --output text)
+    assume_role $(account_id_for_name "tools") "deploy-app"
 
     aws ecr put-image --region ap-southeast-1 \
                       --repository-name ${repository_name} \

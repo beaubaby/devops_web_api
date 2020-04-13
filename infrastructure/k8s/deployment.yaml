@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: coreplatform
+  name: loan-eligibility
+  labels:
+    app: loan-eligibility
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: loan-eligibility
+  template:
+    metadata:
+      labels:
+        app: loan-eligibility
+    spec:
+      containers:
+        - name: loan-eligibility
+          image: 688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/loan-eligibility-service:latest
+          imagePullPolicy: Always
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 3
+            timeoutSeconds: 1
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 15
+            timeoutSeconds: 5
+            periodSeconds: 60
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "0.1"
+            limits:
+              memory: "128Mi"
+              cpu: "1"

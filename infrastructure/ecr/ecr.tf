@@ -1,5 +1,5 @@
 resource "aws_ecr_repository" "service" {
-  name = "loan-eligibility-service"
+  name = "coreplatform/loan-eligibility-service"
 }
 
 resource "aws_ecr_repository_policy" "service" {
