@@ -217,6 +217,18 @@ add_container_tag() {
   )
 }
 
+task_infrastructure_apply_deployment(){
+#  local env=$1
+#  local account=$(account_for_env $env)
+
+  assume_role $(account_id_for_name "tools") "deploy-app"
+  (
+    aws eks --region ap-southeast-1 update-kubeconfig --name dev_eks_cluster
+    kubectl get nodes
+  )
+
+}
+
 help__infrastructure_apply_app="provision app infra"
 task_infrastructure_apply_app() {
   local env=$1
