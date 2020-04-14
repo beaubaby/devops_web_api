@@ -238,7 +238,7 @@ task_infrastructure_apply_deployment(){
 
     cp ~/.kube/config ./infrastructure/k8s/config
     chmod 655 ./infrastructure/k8s/config
-    kubectl $@
+    kubectl kubectl cluster-info
   )
 
 }
