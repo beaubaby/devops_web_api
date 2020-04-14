@@ -81,6 +81,19 @@ gradle() {
   return $exit
 }
 
+kubectl() {
+
+  cd ${SCRIPT_DIR}
+
+  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.kubernetes"
+
+  docker_run "$@"
+
+  local exit=$?
+  cd - >/dev/null
+  return $exit
+}
+
 assume_role() {
   account_id="$1"
   role="$2"
@@ -184,6 +197,7 @@ terraform_app() {
   return $exit
 }
 
+
 help__infrastructure_apply_ecr="provision ecr"
 task_infrastructure_apply_ecr() {
   if runs_inside_gocd; then
@@ -218,51 +232,50 @@ add_container_tag() {
 }
 
 task_infrastructure_apply_deployment(){
-#  local env=$1
-#  local account=$(account_for_env $env)
-
-
   (
     assume_role $(account_id_for_name "dev") "deploy-app"
     aws eks --region ap-southeast-1 update-kubeconfig --name dev_eks_cluster
-    kubectl get nodes
+
+    cp ~/.kube/config ./infrastructure/k8s/config
+    chmod 655 ./infrastructure/k8s/config
+    kubectl $@
   )
 
 }
 
-help__infrastructure_apply_app="provision app infra"
-task_infrastructure_apply_app() {
-  local env=$1
-  local account=$(account_for_env $env)
-
-  if [ -z "${env}" ] ; then
-    echo "Needs environment"
-    exit 1
-  fi
-
-  source loan-eligibility-service-container.info
-
-  if [ -z "${LOAN_ELIGIBILITY_SERVICE_CONTAINER}" ]; then
-    echo "expected LOAN_ELIGIBILITY_SERVICE_CONTAINER"
-    exit 1
-  fi
-  if runs_inside_gocd; then
-    env_tag_for_container="${env}-$(date +%s)"
-    add_container_tag loan-eligibility-service ${LOAN_ELIGIBILITY_SERVICE_CONTAINER_TAG} ${env_tag_for_container}
-    local args="-auto-approve"
-  else
-    local args=""
-  fi
-
-  terraform_app init
-  terraform_app workspace select $env || terraform_app workspace new $env
-
-  terraform_app apply -var-file $env.tfvars \
-                -var application_image_url=${LOAN_ELIGIBILITY_SERVICE_CONTAINER} \
-                $restore_args $args
-
-  cd - >/dev/null
-}
+#help__infrastructure_apply_app="provision app infra"
+#task_infrastructure_apply_app() {
+#  local env=$1
+#  local account=$(account_for_env $env)
+#
+#  if [ -z "${env}" ] ; then
+#    echo "Needs environment"
+#    exit 1
+#  fi
+#
+#  source loan-eligibility-service-container.info
+#
+#  if [ -z "${LOAN_ELIGIBILITY_SERVICE_CONTAINER}" ]; then
+#    echo "expected LOAN_ELIGIBILITY_SERVICE_CONTAINER"
+#    exit 1
+#  fi
+#  if runs_inside_gocd; then
+#    env_tag_for_container="${env}-$(date +%s)"
+#    add_container_tag loan-eligibility-service ${LOAN_ELIGIBILITY_SERVICE_CONTAINER_TAG} ${env_tag_for_container}
+#    local args="-auto-approve"
+#  else
+#    local args=""
+#  fi
+#
+#  terraform_app init
+#  terraform_app workspace select $env || terraform_app workspace new $env
+#
+#  terraform_app apply -var-file $env.tfvars \
+#                -var application_image_url=${LOAN_ELIGIBILITY_SERVICE_CONTAINER} \
+#                $restore_args $args
+#
+#  cd - >/dev/null
+#}
 ## main
 
 list_all_helps() {

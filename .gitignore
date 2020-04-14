@@ -35,3 +35,4 @@ out/
 
 .terraform/
 *-container.info
+/infrastructure/k8s/config
