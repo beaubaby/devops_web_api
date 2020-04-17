@@ -15,7 +15,7 @@ import org.springframework.web.client.RestTemplate
 class DemoCalculatorController(val calculator: DemoCalculator) {
     private val log: Logger = LoggerFactory.getLogger(DemoCalculatorController::class.java)
     @Autowired
-    private val restTemplate: RestTemplate? = null;
+    private val restTemplate: RestTemplate? = null
     @GetMapping
     fun demo(): String = "Hello Calculator"
 
@@ -25,12 +25,11 @@ class DemoCalculatorController(val calculator: DemoCalculator) {
     }
 
     @GetMapping("/hello-world")
-    fun hello(){
+    fun hello() {
         val url = "http://hello-service/"
-        val result: hello? = restTemplate!!.getForObject<hello>(url, hello::class.java);
-        log.debug("Result: {}", result);
+        val result: String? = restTemplate!!.getForObject<String>(url, String::class.java)
+        log.debug("Result: {}", result)
     }
 }
 
 data class plusInput(val a: Int = 0, val b: Int = 0)
-data class hello(val result: String  = "")
