@@ -239,8 +239,8 @@ task_kubernetes_apply_deployment(){
 
     cp ~/.kube/config ./infrastructure/k8s/config
     chmod 655 ./infrastructure/k8s/config
-    kubectl kubectl delete -f infrastructure/k8s/deployment.yaml || true
     kubectl kubectl apply -f infrastructure/k8s/deployment.yaml
+    kubectl kubectl patch deployment loan-eligibility -p '{"spec":{"template":{"spec":{"terminationGracePeriodSeconds":31}}}}'
   )
 
 }
