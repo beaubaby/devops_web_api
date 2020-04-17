@@ -26,7 +26,7 @@ class DemoCalculatorController(val calculator: DemoCalculator) {
 
     @GetMapping("/hello-world")
     fun hello() {
-        val url = "http://hello-service/"
+        val url = "http://hello-service:8080"
         val result: String? = restTemplate!!.getForObject<String>(url, String::class.java)
         log.debug("Result: {}", result)
     }
