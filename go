@@ -239,7 +239,7 @@ task_kubernetes_apply_deployment(){
 
     cp ~/.kube/config ./infrastructure/k8s/config
     chmod 655 ./infrastructure/k8s/config
-    kubectl ls
+    kubectl kubectl delete -f infrastructure/k8s/deployment.yaml || true
     kubectl kubectl apply -f infrastructure/k8s/deployment.yaml
   )
 
