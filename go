@@ -245,7 +245,7 @@ task_kubernetes_apply_deployment(){
 
 }
 
-help__kubernetes_apply="kubectl apply"
+help__kubernetes_apply="kubectl apply service"
 task_kubernetes_apply_service(){
   local env=$1
   (
@@ -254,7 +254,7 @@ task_kubernetes_apply_service(){
 
     cp ~/.kube/config ./infrastructure/k8s/config
     chmod 655 ./infrastructure/k8s/config
-    kubectl kubectl apply -f service.yaml
+    kubectl kubectl apply -f infrastructure/k8s/service.yaml
   )
 
 }
