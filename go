@@ -230,15 +230,31 @@ add_container_tag() {
                       --image-manifest "${image_manifest}"
   )
 }
-
-task_infrastructure_apply_deployment(){
+help__kubernetes_apply="kubectl apply deployment"
+task_kubernetes_apply_deployment(){
+  local env=$1
   (
-    assume_role $(account_id_for_name "dev") "deploy-app"
-    aws eks --region ap-southeast-1 update-kubeconfig --name dev_eks_cluster
+    assume_role $(account_id_for_name ${env}) "deploy-app"
+    aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
 
     cp ~/.kube/config ./infrastructure/k8s/config
     chmod 655 ./infrastructure/k8s/config
-    kubectl kubectl cluster-info
+    kubectl ls
+    kubectl kubectl apply -f infrastructure/k8s/deployment.yaml
+  )
+
+}
+
+help__kubernetes_apply="kubectl apply"
+task_kubernetes_apply_service(){
+  local env=$1
+  (
+    assume_role $(account_id_for_name ${env}) "deploy-app"
+    aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
+
+    cp ~/.kube/config ./infrastructure/k8s/config
+    chmod 655 ./infrastructure/k8s/config
+    kubectl kubectl apply -f service.yaml
   )
 
 }
