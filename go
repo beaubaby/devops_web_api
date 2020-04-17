@@ -259,6 +259,20 @@ task_kubernetes_apply_service(){
 
 }
 
+help__kubernetes_apply="kubectl apply ingress"
+task_kubernetes_apply_ingress(){
+  local env=$1
+  (
+    assume_role $(account_id_for_name ${env}) "deploy-app"
+    aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
+
+    cp ~/.kube/config ./infrastructure/k8s/config
+    chmod 655 ./infrastructure/k8s/config
+    kubectl kubectl apply -f infrastructure/k8s/ingress.yaml
+  )
+
+}
+
 ## main
 
 list_all_helps() {
