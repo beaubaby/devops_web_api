@@ -1,7 +1,6 @@
 kind: Service
 apiVersion: v1
 metadata:
-  namespace: coreplatform
   name: loan-eligibility-svc
 spec:
   selector:
