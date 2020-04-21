@@ -245,7 +245,7 @@ task_kubernetes_apply_deployment(){
 
     cp ~/.kube/config ./infrastructure/k8s/config
     kubectl kubectl apply -f infrastructure/k8s/deployment.yaml
-    kubectl kubectl patch deployment loan-eligibility  --type json   -p='[{"op": "replace", "path": "/spec/containers/0/image", "value":"'${LOAN_ELIGIBILITY_SERVICE_CONTAINER}'"}]'
+    kubectl kubectl patch deployment loan-eligibility  --type json   -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value":"'${LOAN_ELIGIBILITY_SERVICE_CONTAINER}'"}]'
   )
 
 }
