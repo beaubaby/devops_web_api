@@ -33,7 +33,7 @@ class DemoCalculatorController(val calculator: DemoCalculator) {
     }
 
     @GetMapping("/vehicle")
-    fun vehicle(): Vehicle{
+    fun vehicle(): Vehicle {
         return Vehicle()
     }
 }

@@ -10,5 +10,4 @@ class AppConfig {
     fun restTemplate(): RestTemplate {
         return RestTemplate()
     }
-
 }
