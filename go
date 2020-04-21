@@ -233,14 +233,20 @@ add_container_tag() {
 help__kubernetes_apply="kubectl apply deployment"
 task_kubernetes_apply_deployment(){
   local env=$1
+
+  source loan-eligibility-service-container.info
+  if [ -z "${LOAN_ELIGIBILITY_SERVICE_CONTAINER}" ]; then
+    echo "expected LOAN_ELIGIBILITY_SERVICE_CONTAINER"
+    exit 1
+  fi
   (
     assume_role $(account_id_for_name ${env}) "deploy-app"
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
 
     cp ~/.kube/config ./infrastructure/k8s/config
-    chmod 655 ./infrastructure/k8s/config
     kubectl kubectl apply -f infrastructure/k8s/deployment.yaml
-    kubectl kubectl patch deployment loan-eligibility -p '{"spec":{"template":{"spec":{"terminationGracePeriodSeconds":31}}}}'
+#    kubectl kubectl patch deployment loan-eligibility -p '{"spec":{"template":{"spec":{"terminationGracePeriodSeconds":31}}}}'
+    kubectl kubectl set image deployment/loan-eligibility loan-eligibility=${LOAN_ELIGIBILITY_SERVICE_CONTAINER} --record
   )
 
 }
@@ -253,7 +259,6 @@ task_kubernetes_apply_service(){
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
 
     cp ~/.kube/config ./infrastructure/k8s/config
-    chmod 655 ./infrastructure/k8s/config
     kubectl kubectl apply -f infrastructure/k8s/service.yaml
   )
 
@@ -267,7 +272,6 @@ task_kubernetes_apply_ingress(){
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
 
     cp ~/.kube/config ./infrastructure/k8s/config
-    chmod 655 ./infrastructure/k8s/config
     kubectl kubectl apply -f infrastructure/k8s/ingress.yaml
   )
 
