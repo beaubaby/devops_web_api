@@ -245,8 +245,7 @@ task_kubernetes_apply_deployment(){
 
     cp ~/.kube/config ./infrastructure/k8s/config
     kubectl kubectl apply -f infrastructure/k8s/deployment.yaml
-#    kubectl kubectl patch deployment loan-eligibility -p '{"spec":{"template":{"spec":{"terminationGracePeriodSeconds":31}}}}'
-    kubectl kubectl set image deployment/loan-eligibility loan-eligibility=${LOAN_ELIGIBILITY_SERVICE_CONTAINER} --record
+    kubectl kubectl patch deployment loan-eligibility -p '{"spec":{"template":{"spec":{"image":'${LOAN_ELIGIBILITY_SERVICE_CONTAINER}'}}}}'
   )
 
 }
