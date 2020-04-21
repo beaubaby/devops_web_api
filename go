@@ -21,7 +21,7 @@ account_for_env() {
   case $1 in
       'dev') echo "dev";;
       'qa') echo "dev";;
-      'uat') echo "uat";;
+      'uat') echo "dev";;
       'prod') echo "prod";;
   esac
 }
