@@ -2,7 +2,6 @@ package com.ka.loaneligibility.backend.demo
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -12,10 +11,9 @@ import org.springframework.web.client.RestTemplate
 
 @RestController
 @RequestMapping("/demo")
-class DemoCalculatorController(val calculator: DemoCalculator) {
+class DemoCalculatorController(val calculator: DemoCalculator, val restTemplate: RestTemplate) {
     private val log: Logger = LoggerFactory.getLogger(DemoCalculatorController::class.java)
-    @Autowired
-    private var restTemplate: RestTemplate? = null
+
     @GetMapping
     fun demo(): String = "Hello Calculator"
 
@@ -27,7 +25,7 @@ class DemoCalculatorController(val calculator: DemoCalculator) {
     @GetMapping("/get-vehicle")
     fun hello(): Vehicle? {
         val url = "http://loan-eligibility-svc:8080/demo/vehicle"
-        var result: Vehicle? = restTemplate!!.getForObject<Vehicle>(url, Vehicle::class.java)
+        var result: Vehicle? = restTemplate.getForObject<Vehicle>(url, Vehicle::class.java)
         result!!.miles = 2500
         return result
     }
