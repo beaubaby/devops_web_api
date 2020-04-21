@@ -1,2 +1,0 @@
-cat &lt;&lt;EOF &gt;final.yml
-EOF
