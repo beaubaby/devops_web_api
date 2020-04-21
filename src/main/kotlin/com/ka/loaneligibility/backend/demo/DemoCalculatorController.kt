@@ -15,7 +15,7 @@ import org.springframework.web.client.RestTemplate
 class DemoCalculatorController(val calculator: DemoCalculator) {
     private val log: Logger = LoggerFactory.getLogger(DemoCalculatorController::class.java)
     @Autowired
-    private val restTemplate: RestTemplate? = null
+    private var restTemplate: RestTemplate? = null
     @GetMapping
     fun demo(): String = "Hello Calculator"
 
@@ -24,13 +24,23 @@ class DemoCalculatorController(val calculator: DemoCalculator) {
         return calculator.plus(body.a, body.b)
     }
 
-    @GetMapping("/hello-world")
-    fun hello(): String {
-        val url = "http://hello-service:8080"
-        val result: String? = restTemplate!!.getForObject<String>(url, String::class.java)
-        log.debug("Result: {}", result)
-        return result.toString()
+    @GetMapping("/get-vehicle")
+    fun hello(): Vehicle? {
+        val url = "http://loan-eligibility-svc:8080/demo/vehicle"
+        var result: Vehicle? = restTemplate!!.getForObject<Vehicle>(url, Vehicle::class.java)
+        result!!.miles = 2500
+        return result
+    }
+
+    @GetMapping("/vehicle")
+    fun vehicle(): Vehicle{
+        return Vehicle()
     }
 }
 
 data class plusInput(val a: Int = 0, val b: Int = 0)
+class Vehicle {
+    var brand: String = "Subaru"
+    var model: String = "WRX STI"
+    var miles: Int = 1000
+}
