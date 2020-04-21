@@ -12,6 +12,7 @@ account_id_for_name() {
   case $1 in
       'dev') echo "259510286099";;
       'qa') echo "259510286099";;
+      'uat') echo "259510286099";;
       'prod') echo "978668668395";;
       'tools') echo "688318228301";;
   esac
