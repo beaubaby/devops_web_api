@@ -182,6 +182,60 @@ tf() {
   docker_run "$@"
 }
 
+terraform() {
+  cd ${SCRIPT_DIR}/infrastructure/app
+   tf "$@"
+   local exit=$?
+   cd - >/dev/null
+   return $exit
+}
+
+help__plan="provision backend infrastructure"
+task_plan() {
+  local env=$1
+  local account=$(account_for_env $env)
+
+  if [ -z "${env}" ] ; then
+    echo "Needs environment"
+    exit 1
+  fi
+
+  terraform init
+  terraform plan -var-file $env.tfvars $args
+  
+  cd - >/dev/null
+}
+
+help__apply="provision backend infrastructure"
+task_apply() {
+  local env=$1
+  local account=$(account_for_env $env)
+
+  if [ -z "${env}" ] ; then
+    echo "Needs environment"
+    exit 1
+  fi
+
+  terraform apply -var-file $env.tfvars $args
+  
+  cd - >/dev/null
+}
+
+help__destroy="destroy backend infrastructure"
+task_destroy() {
+  local env=$1
+  local account=$(account_for_env $env)
+
+  if [ -z "${env}" ] ; then
+    echo "Needs environment"
+    exit 1
+  fi
+
+  terraform destroy -var-file $env.tfvars $args
+  
+  cd - >/dev/null
+}
+
 terraform_ecr() {
   cd ${SCRIPT_DIR}/infrastructure/ecr
   tf "$@"
@@ -189,15 +243,6 @@ terraform_ecr() {
   cd - >/dev/null
   return $exit
 }
-
-terraform_app() {
-  cd ${SCRIPT_DIR}/infrastructure/app
-  tf "$@"
-  local exit=$?
-  cd - >/dev/null
-  return $exit
-}
-
 
 help__infrastructure_apply_ecr="provision ecr"
 task_infrastructure_apply_ecr() {

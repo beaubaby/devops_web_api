@@ -15,3 +15,17 @@ terraform {
     role_arn       = "arn:aws:iam::688318228301:role/Access-Terraform-State"
   }
 }
+
+data "aws_vpc" "vpc_data" {
+  filter {
+    name   = "tag:Name"
+    values = [var.environment_name]
+  }
+}
+
+data "aws_subnet_ids" "private_subnets" {
+  vpc_id = data.aws_vpc.vpc_data.id
+  tags = {
+    Tier = "private"
+  }
+}
