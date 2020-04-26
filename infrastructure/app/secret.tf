@@ -53,8 +53,8 @@ data "aws_iam_policy_document" "rds_kms_key_policy" {
 
 resource "aws_kms_key" "rds" {
   tags = {
-    Name        = "loan-eligibility DB Encryption Key"
-    App         = "loan-eligibility"
+    Name        = "Loan Eligibility DB Encryption Key"
+    App         = "Loan Eligibility"
     Component   = "DB"
     Environment = "${var.environment_name}"
   }

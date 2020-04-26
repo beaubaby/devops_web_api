@@ -1,7 +1,7 @@
 data "aws_kms_alias" "db_secrets" { name = "alias/${var.environment_name}/db-secrets" }
 locals {
   loan_eligibility_db_secret = {
-    db_user     = "LoanUser",
+    db_user     = "LoanDBUser",
     db_password = "${random_string.password.result}"
   }
 }
@@ -12,9 +12,16 @@ resource "random_string" "password" {
   override_special = "!#"
 }
 
-resource "aws_secretsmanager_secret" "loan_eligibility_db_secrets" {
-  name = "${var.environment_name}/loan-eligibility/db-secrets"
-  kms_key_id = "${data.aws_kms_alias.db_secrets.target_key_id}" # If not specified, it will use the default `aws/secretsmanager` KMS key
+resource "aws_secretsmanager_secret" "loan_eligibility_db_secret" {
+  count         = var.create_secret ? 1 : 0
+  name          = "${var.environment_name}/db-secrets"
+  kms_key_id    = "${data.aws_kms_alias.db_secrets.target_key_id}"
+}
+
+resource "aws_secretsmanager_secret_version" "secret_version" {
+  count         = var.create_secret ? 1 : 0
+  secret_id     = aws_secretsmanager_secret.loan_eligibility_db_secret[0].id
+  secret_string = random_string.password.result
 }
 
 # resource "aws_secretsmanager_secret" "loan_eligibility_db_secret" {
@@ -98,18 +105,18 @@ resource "aws_secretsmanager_secret" "loan_eligibility_db_secrets" {
 # }
 
 resource "aws_rds_cluster_instance" "cluster_instances" {
-  count                = 1
+  count                = 2
   identifier_prefix    = "${var.environment_name}-aurora-instance-${count.index}"
   cluster_identifier   = "${aws_rds_cluster.loan_eligibility_database_cluster.id}"
-  instance_class       = "db.r4.large"
+  instance_class       = "db.t3.small"
   db_subnet_group_name = "${aws_db_subnet_group.aurora_subnet_group.name}"
   apply_immediately    = true
 
   tags = {
-    Name        = "${var.environment_name}-Aurora-loan-eligibility-DB-Instance-${count.index}"
-    Environment = "${var.environment_name}"
-    App         = "loan-eligibility"
+    Name        = "Loan Eligibility RdsDatabase Instance"
+    App         = "Loan Eligibility"
     Component   = "DB"
+    Environment = "${var.environment_name}"
   }
   lifecycle {
     prevent_destroy = false                               // TODO: set back to true after rolling out scale-down in prod
@@ -120,7 +127,7 @@ resource "aws_rds_cluster_instance" "cluster_instances" {
 
 resource "aws_rds_cluster" "loan_eligibility_database_cluster" {
   cluster_identifier_prefix = "${var.environment_name}-aurora-cluster"
-  database_name             = "loaneligibilitydb"
+  database_name             = "LoanEligibilityDB"
   master_username           = "${local.loan_eligibility_db_secret["db_user"]}"
   master_password           = "${local.loan_eligibility_db_secret["db_password"]}"
   db_subnet_group_name      = "${aws_db_subnet_group.aurora_subnet_group.name}"
@@ -128,9 +135,9 @@ resource "aws_rds_cluster" "loan_eligibility_database_cluster" {
   skip_final_snapshot       = true
   storage_encrypted         = true
   kms_key_id                = "${aws_kms_alias.rds.target_key_arn}"
-  backup_retention_period   = 5
-
-  backtrack_window = "${24 * 60 * 60}"
+  backup_retention_period   = 30
+  snapshot_identifier       = "${var.rds_snapshot_to_restore}"
+  backtrack_window          = "${24 * 60 * 60}"
 
   enabled_cloudwatch_logs_exports = [
     "audit",
@@ -138,9 +145,6 @@ resource "aws_rds_cluster" "loan_eligibility_database_cluster" {
     "general",
     "slowquery",
   ]
-
-  snapshot_identifier = "${var.rds_snapshot_to_restore}"
-
   lifecycle {
     prevent_destroy = false
     // to be able to gradually roll out change from fixed identifier to identifier prefix and adding backtrack_window
@@ -151,7 +155,7 @@ resource "aws_rds_cluster" "loan_eligibility_database_cluster" {
     ]
   }
   tags = {
-    Name        = "Loan_Eligibility_RdsDatabase"
+    Name        = "Loan Eligibility RdsDatabase Cluster"
     App         = "Loan Eligibility"
     Component   = "DB"
     Environment = "${var.environment_name}"
@@ -164,8 +168,8 @@ resource "aws_db_subnet_group" "aurora_subnet_group" {
   subnet_ids  = "${data.aws_subnet_ids.private_subnets.ids}"
 
   tags = {
-    Name        = "loan-eligibility DB"
-    App         = "loan-eligibility"
+    Name        = "Loan Eligibility RdsDatabase"
+    App         = "Loan Eligibility"
     Component   = "DB"
     Environment = "${var.environment_name}"
   }
@@ -195,9 +199,9 @@ resource "aws_security_group" "allow-loan-eligibility-to-database" {
   }
 
   tags = {
-    Environment = "${var.environment_name}"
+    Name        = "Loan Eligibility RdsDatabase SecurityGroup"
     App         = "Loan Eligibility"
-    Name        = "Loan_Eligibility_RdsDatabase"
+    Environment = "${var.environment_name}"
   }
   lifecycle {
     create_before_destroy = true
