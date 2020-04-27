@@ -55,6 +55,18 @@ docker_run() {
              ${args} ${DOCKER_ARGS} ${image_id} "$@"
 }
 
+assume_role() {
+  account_id="$1"
+  role="$2"
+
+  credentials=$(aws sts assume-role --role-arn "arn:aws:iam::${account_id}:role/${role}" \
+                                      --role-session-name initial --duration-seconds 2700 | jq '.Credentials')
+  export AWS_ACCESS_KEY_ID=$(echo "${credentials}" | jq -r .AccessKeyId)
+  export AWS_SECRET_ACCESS_KEY=$(echo "${credentials}" | jq -r .SecretAccessKey)
+  export AWS_SESSION_TOKEN=$(echo "${credentials}" | jq -r .SessionToken)
+  unset AWS_SECURITY_TOKEN
+}
+
 docker_ensure_volume() {
   docker volume inspect $1 >/dev/null 2>&1 || docker volume create $1 >/dev/null 2>&1
 }
@@ -95,16 +107,38 @@ kubectl() {
   return $exit
 }
 
-assume_role() {
-  account_id="$1"
-  role="$2"
+task_stopDb() {
+  if docker ps | grep "loan-db" > /dev/null; then
+    docker stop loan-db
+  fi
+}
 
-  credentials=$(aws sts assume-role --role-arn "arn:aws:iam::${account_id}:role/${role}" \
-                                      --role-session-name initial --duration-seconds 2700 | jq '.Credentials')
-  export AWS_ACCESS_KEY_ID=$(echo "${credentials}" | jq -r .AccessKeyId)
-  export AWS_SECRET_ACCESS_KEY=$(echo "${credentials}" | jq -r .SecretAccessKey)
-  export AWS_SESSION_TOKEN=$(echo "${credentials}" | jq -r .SessionToken)
-  unset AWS_SECURITY_TOKEN
+help__startDb="Start the database locally and bind port to port 3306"
+task_startDb() {
+  task_stopDb
+
+  mkdir -p data
+#  docker_ensure_network loan
+
+  if runs_inside_gocd; then
+    port_forward=""
+  else
+    port_forward="-p 3306:3306"
+  fi
+
+  docker run --rm --name loan-db $port_forward \
+    -e MYSQL_ROOT_PASSWORD=db_root_password \
+    -e MYSQL_DATABASE=test_db \
+    -d mysql:5
+}
+
+fetch_secret() {
+  (
+    account_name="$1"
+    secret_name="$2"
+    assume_role $(account_id_for_name ${account_name}) "deploy-app"
+    echo `aws secretsmanager get-secret-value --secret-id ${secret_name} --query SecretString --output text --region ap-southeast-1`
+  )
 }
 
 push-container() {
