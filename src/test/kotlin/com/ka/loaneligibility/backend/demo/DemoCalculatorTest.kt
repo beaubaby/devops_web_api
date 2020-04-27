@@ -4,7 +4,9 @@ import io.kotlintest.data.forall
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.FreeSpec
 import io.kotlintest.tables.row
+import org.springframework.test.context.ActiveProfiles
 
+@ActiveProfiles("test")
 class DemoCalculatorTest : FreeSpec({
     "plus" - {
         val firstRandomInt = Math.random().toInt()
