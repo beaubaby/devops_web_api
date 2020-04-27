@@ -5,10 +5,10 @@ import javax.persistence.GeneratedValue
 import javax.persistence.Id
 
 @Entity
-data class CarModel (
+data class CarModel(
     @Id
     @GeneratedValue
     var id: Long? = null,
-    var brand : String,
-    var color : String
+    var brand: String,
+    var color: String
 )
