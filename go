@@ -2,7 +2,10 @@
 
 set -e
 
-SCRIPT_DIR=$(cd $(dirname $0) ; pwd -P)
+SCRIPT_DIR=$(
+  cd $(dirname $0)
+  pwd -P
+)
 
 TASK=$1
 ARGS=${@:2}
@@ -10,20 +13,20 @@ ARGS=${@:2}
 
 account_id_for_name() {
   case $1 in
-      'dev') echo "259510286099";;
-      'qa') echo "259510286099";;
-      'uat') echo "259510286099";;
-      'prod') echo "978668668395";;
-      'tools') echo "688318228301";;
+  'dev') echo "259510286099" ;;
+  'qa') echo "259510286099" ;;
+  'uat') echo "259510286099" ;;
+  'prod') echo "978668668395" ;;
+  'tools') echo "688318228301" ;;
   esac
 }
 
 account_for_env() {
   case $1 in
-      'dev') echo "dev";;
-      'qa') echo "dev";;
-      'uat') echo "dev";;
-      'prod') echo "prod";;
+  'dev') echo "dev" ;;
+  'qa') echo "dev" ;;
+  'uat') echo "dev" ;;
+  'prod') echo "prod" ;;
   esac
 }
 
@@ -47,12 +50,12 @@ docker_run() {
 
   DOCKER_ARGS="${DOCKER_ARGS} -v ${HOME}/.aws:/root/.aws"
   docker run --rm \
-             -u "$(id -u)" \
-             --hostname $(hostname) \
-             --env-file <(env | grep JET_) \
-             --env-file <(env | grep AWS_) \
-             --env-file <(env | grep TF_) \
-             ${args} ${DOCKER_ARGS} ${image_id} "$@"
+    -u "$(id -u)" \
+    --hostname $(hostname) \
+    --env-file <(env | grep JET_) \
+    --env-file <(env | grep AWS_) \
+    --env-file <(env | grep TF_) \
+    ${args} ${DOCKER_ARGS} ${image_id} "$@"
 }
 
 docker_ensure_volume() {
@@ -100,7 +103,7 @@ assume_role() {
   role="$2"
 
   credentials=$(aws sts assume-role --role-arn "arn:aws:iam::${account_id}:role/${role}" \
-                                      --role-session-name initial --duration-seconds 2700 | jq '.Credentials')
+    --role-session-name initial --duration-seconds 2700 | jq '.Credentials')
   export AWS_ACCESS_KEY_ID=$(echo "${credentials}" | jq -r .AccessKeyId)
   export AWS_SECRET_ACCESS_KEY=$(echo "${credentials}" | jq -r .SecretAccessKey)
   export AWS_SESSION_TOKEN=$(echo "${credentials}" | jq -r .SessionToken)
@@ -124,8 +127,8 @@ push-container() {
 
   local var_name="$(echo "${app_name}" | tr "[:lower:]" "[:upper:]" | tr - _)_CONTAINER"
 
-  echo "${var_name}_TAG=${revision_tag}" > ${app_name}-container.info
-  echo "${var_name}=${repo_url}:${revision_tag}" >> ${app_name}-container.info
+  echo "${var_name}_TAG=${revision_tag}" >${app_name}-container.info
+  echo "${var_name}=${repo_url}:${revision_tag}" >>${app_name}-container.info
 }
 
 ## tasks
@@ -159,11 +162,15 @@ task_static_check() {
   gradle check
 }
 
-help__containerize="containerize application into docker image"
-task_containerize() {
-    docker build --pull -f ${SCRIPT_DIR}/Dockerfile.production -t loan-eligibility-service .
+help__running_app="running application"
+task_running_app() {
+  gradle clean bootRun
 }
 
+help__containerize="containerize application into docker image"
+task_containerize() {
+  docker build --pull -f ${SCRIPT_DIR}/Dockerfile.production -t loan-eligibility-service .
+}
 
 help__push_container="push image to ECR"
 task_push_container() {
@@ -172,9 +179,9 @@ task_push_container() {
 
 tf() {
   if runs_inside_gocd; then
-     local docker_user_args="-u $(id -u)"
+    local docker_user_args="-u $(id -u)"
   else
-     local docker_user_args=""
+    local docker_user_args=""
   fi
 
   DOCKER_ARGS="${DOCKER_ARGS} ${docker_user_args}"
@@ -184,10 +191,10 @@ tf() {
 
 terraform() {
   cd ${SCRIPT_DIR}/infrastructure/app
-   tf "$@"
-   local exit=$?
-   cd - >/dev/null
-   return $exit
+  tf "$@"
+  local exit=$?
+  cd - >/dev/null
+  return $exit
 }
 
 help__plan="provision backend infrastructure"
@@ -195,14 +202,14 @@ task_plan() {
   local env=$1
   local account=$(account_for_env $env)
 
-  if [ -z "${env}" ] ; then
+  if [ -z "${env}" ]; then
     echo "Needs environment"
     exit 1
   fi
 
   terraform init
   terraform plan -var-file $env.tfvars $args
-  
+
   cd - >/dev/null
 }
 
@@ -211,13 +218,13 @@ task_apply() {
   local env=$1
   local account=$(account_for_env $env)
 
-  if [ -z "${env}" ] ; then
+  if [ -z "${env}" ]; then
     echo "Needs environment"
     exit 1
   fi
 
   terraform apply -var-file $env.tfvars $args
-  
+
   cd - >/dev/null
 }
 
@@ -226,13 +233,13 @@ task_destroy() {
   local env=$1
   local account=$(account_for_env $env)
 
-  if [ -z "${env}" ] ; then
+  if [ -z "${env}" ]; then
     echo "Needs environment"
     exit 1
   fi
 
   terraform destroy -var-file $env.tfvars $args
-  
+
   cd - >/dev/null
 }
 
@@ -265,19 +272,19 @@ add_container_tag() {
     assume_role $(account_id_for_name "tools") "push-containers"
 
     local image_manifest=$(aws ecr batch-get-image --region ap-southeast-1 \
-                                                   --repository-name ${repository_name} \
-                                                   --image-ids imageTag=${image_tag} \
-                                                   --query 'images[].imageManifest' \
-                                                   --output text)
+      --repository-name ${repository_name} \
+      --image-ids imageTag=${image_tag} \
+      --query 'images[].imageManifest' \
+      --output text)
 
     aws ecr put-image --region ap-southeast-1 \
-                      --repository-name ${repository_name} \
-                      --image-tag "${new_image_tag}" \
-                      --image-manifest "${image_manifest}"
+      --repository-name ${repository_name} \
+      --image-tag "${new_image_tag}" \
+      --image-manifest "${image_manifest}"
   )
 }
 help__kubernetes_apply="kubectl apply deployment"
-task_kubernetes_apply_deployment(){
+task_kubernetes_apply_deployment() {
   local env=$1
 
   source loan-eligibility-service-container.info
@@ -291,13 +298,13 @@ task_kubernetes_apply_deployment(){
 
     cp ~/.kube/config ./infrastructure/k8s/config
     kubectl kubectl apply -f infrastructure/k8s/deployment.yaml
-    kubectl kubectl patch deployment loan-eligibility  --type json   -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value":"'${LOAN_ELIGIBILITY_SERVICE_CONTAINER}'"}]'
+    kubectl kubectl patch deployment loan-eligibility --type json -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value":"'${LOAN_ELIGIBILITY_SERVICE_CONTAINER}'"}]'
   )
 
 }
 
 help__kubernetes_apply="kubectl apply service"
-task_kubernetes_apply_service(){
+task_kubernetes_apply_service() {
   local env=$1
   (
     assume_role $(account_id_for_name ${env}) "deploy-app"
@@ -310,7 +317,7 @@ task_kubernetes_apply_service(){
 }
 
 help__kubernetes_apply="kubectl apply ingress"
-task_kubernetes_apply_ingress(){
+task_kubernetes_apply_ingress() {
   local env=$1
   (
     assume_role $(account_id_for_name ${env}) "deploy-app"
@@ -336,8 +343,7 @@ else
   echo "task:"
 
   HELPS=""
-  for help in $(list_all_helps)
-  do
+  for help in $(list_all_helps); do
 
     HELPS="$HELPS    ${help/help__/} |-- ${!help}$NEW_LINE"
   done
@@ -345,4 +351,3 @@ else
   echo "$HELPS" | column -t -s "|"
   exit 1
 fi
-
