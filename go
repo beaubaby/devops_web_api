@@ -189,7 +189,7 @@ task_apply() {
   local env=$1
   local account=$(account_for_env $env)
 
-  if [ -z "${env}" ] ; then
+  if [ -z "${env}" ]; then
     echo "Needs environment"
     exit 1
   fi
@@ -213,7 +213,7 @@ task_destroy() {
   local env=$1
   local account=$(account_for_env $env)
 
-  if [ -z "${env}" ] ; then
+  if [ -z "${env}" ]; then
     echo "Needs environment"
     exit 1
   fi
@@ -237,7 +237,7 @@ task_plan() {
   local env=$1
   local account=$(account_for_env $env)
 
-  if [ -z "${env}" ] ; then
+  if [ -z "${env}" ]; then
     echo "Needs environment"
     exit 1
   fi
