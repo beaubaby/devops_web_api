@@ -184,60 +184,74 @@ terraform() {
   return $exit
 }
 
-help__plan="provision backend infrastructure"
-task_plan() {
+help__apply="Provision backend microservices infrastructure"
+task_apply() {
   local env=$1
   local account=$(account_for_env $env)
 
-  if [ -z "${env}" ]; then
+  if [ -z "${env}" ] ; then
     echo "Needs environment"
     exit 1
   fi
 
-  terraform init
-  terraform plan -var-file $env.tfvars $args
-
-  cd - >/dev/null
-}
-
-help__Apply="provision backend infrastructure"
-help__Apply() {
-  local env=$1
-  local account=$(account_for_env $env)
-
-  if [ -z "${env}" ]; then
-    echo "Needs environment"
-    exit 1
-  fi
-
+  cd ${SCRIPT_DIR}/infrastructure
   if runs_inside_gocd; then
     args="-auto-approve"
   else
     args=""
   fi
 
+  terraform init
+  terraform workspace select $env || tf workspace new $env
   terraform apply -var-file $env.tfvars $args
 
   cd - >/dev/null
 }
 
-help__Destroy="destroy backend infrastructure"
-task_Destroy() {
+help__destroy="Provision backend microservices infrastructure"
+task_destroy() {
   local env=$1
   local account=$(account_for_env $env)
 
-  if [ -z "${env}" ]; then
+  if [ -z "${env}" ] ; then
     echo "Needs environment"
     exit 1
   fi
 
+  cd ${SCRIPT_DIR}/infrastructure
   if runs_inside_gocd; then
     args="-auto-approve"
   else
     args=""
   fi
 
+  terraform init
+  terraform workspace select $env || tf workspace new $env
   terraform destroy -var-file $env.tfvars $args
+
+  cd - >/dev/null
+}
+
+help__plan="Provision backend microservices infrastructure"
+task_plan() {
+  local env=$1
+  local account=$(account_for_env $env)
+
+  if [ -z "${env}" ] ; then
+    echo "Needs environment"
+    exit 1
+  fi
+
+  cd ${SCRIPT_DIR}/infrastructure
+  if runs_inside_gocd; then
+    args="-auto-approve"
+  else
+    args=""
+  fi
+
+  terraform init
+  terraform workspace select $env || tf workspace new $env
+  terraform plan -var-file $env.tfvars $args
 
   cd - >/dev/null
 }
