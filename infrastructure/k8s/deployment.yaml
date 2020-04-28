@@ -5,7 +5,7 @@ metadata:
   labels:
     app: loan-eligibility
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: loan-eligibility
@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: loan-eligibility
-          image: 688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/coreplatform/loan-eligibility-service:latest
+          image: 259510286099.dkr.ecr.ap-southeast-1.amazonaws.com/coreplatform/loan-eligibility-service:latest
           readinessProbe:
             httpGet:
               path: /actuator/health

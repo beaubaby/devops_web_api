@@ -185,6 +185,7 @@ resource "aws_security_group" "allow-loan-eligibility-to-database" {
     to_port   = 3306
     self      = true
   }
+  // TODO Add EKS and worker node in security group to port 3306
   # ingress {
   #   from_port = 3306
   #   protocol  = "tcp"
