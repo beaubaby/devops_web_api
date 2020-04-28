@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: loan-eligibility
-          image: 259510286099.dkr.ecr.ap-southeast-1.amazonaws.com/coreplatform/loan-eligibility-service:latest
+          image: 688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/coreplatform/loan-eligibility-service:latest
           readinessProbe:
             httpGet:
               path: /actuator/health

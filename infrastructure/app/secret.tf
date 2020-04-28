@@ -59,10 +59,10 @@ resource "aws_kms_key" "rds" {
     Environment = "${var.environment_name}"
   }
 
-  policy = "${data.aws_iam_policy_document.rds_kms_key_policy.json}"
+  policy = data.aws_iam_policy_document.rds_kms_key_policy.json
 }
 
 resource "aws_kms_alias" "rds" {
-  target_key_id = "${aws_kms_key.rds.id}"
-  name          = "alias/${var.environment_name}/rds"
+  target_key_id = aws_kms_key.rds.id
+  name = "alias/${var.environment_name}/rds"
 }

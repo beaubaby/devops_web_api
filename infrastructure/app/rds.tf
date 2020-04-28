@@ -2,7 +2,7 @@ data "aws_kms_alias" "db_secrets" { name = "alias/${var.environment_name}/db-sec
 locals {
   loan_eligibility_db_secret = {
     db_user     = "LoanDBUser",
-    db_password = "${random_string.password.result}"
+    db_password = random_string.password.result
   }
 }
 
@@ -13,9 +13,9 @@ resource "random_string" "password" {
 }
 
 resource "aws_secretsmanager_secret" "loan_eligibility_db_secret" {
-  count         = var.create_secret ? 1 : 0
-  name          = "${var.environment_name}/db-secrets"
-  kms_key_id    = "${data.aws_kms_alias.db_secrets.target_key_id}"
+  count = var.create_secret ? 1 : 0
+  name = "${var.environment_name}/db-secrets"
+  kms_key_id = data.aws_kms_alias.db_secrets.target_key_id
 }
 
 resource "aws_secretsmanager_secret_version" "secret_version" {
@@ -105,39 +105,44 @@ resource "aws_secretsmanager_secret_version" "secret_version" {
 # }
 
 resource "aws_rds_cluster_instance" "cluster_instances" {
-  count                = 2
-  identifier_prefix    = "${var.environment_name}-aurora-instance-${count.index}"
-  cluster_identifier   = "${aws_rds_cluster.loan_eligibility_database_cluster.id}"
-  instance_class       = "db.t3.small"
-  db_subnet_group_name = "${aws_db_subnet_group.aurora_subnet_group.name}"
-  apply_immediately    = true
+  count = 2
+  identifier_prefix = "${var.environment_name}-aurora-instance-${count.index}"
+  cluster_identifier = aws_rds_cluster.loan_eligibility_database_cluster.id
+  instance_class = "db.t3.small"
+  db_subnet_group_name = aws_db_subnet_group.aurora_subnet_group.name
+  apply_immediately = true
 
   tags = {
-    Name        = "Loan Eligibility RdsDatabase Instance"
-    App         = "Loan Eligibility"
-    Component   = "DB"
+    Name = "Loan Eligibility RdsDatabase Instance"
+    App = "Loan Eligibility"
+    Component = "DB"
     Environment = "${var.environment_name}"
   }
   lifecycle {
-    prevent_destroy = false                               // TODO: set back to true after rolling out scale-down in prod
-    ignore_changes  = ["identifier_prefix", "identifier"] // to be able to gradually roll out change from fixed identifier to identifier prefix
+    prevent_destroy = false
+    // TODO: set back to true after rolling out scale-down in prod
+    ignore_changes = [
+      "identifier_prefix",
+      "identifier"]
+    // to be able to gradually roll out change from fixed identifier to identifier prefix
   }
 }
 
 
 resource "aws_rds_cluster" "loan_eligibility_database_cluster" {
   cluster_identifier_prefix = "${var.environment_name}-aurora-cluster"
-  database_name             = "LoanEligibilityDB"
-  master_username           = "${local.loan_eligibility_db_secret["db_user"]}"
-  master_password           = "${local.loan_eligibility_db_secret["db_password"]}"
-  db_subnet_group_name      = "${aws_db_subnet_group.aurora_subnet_group.name}"
-  vpc_security_group_ids    = ["${aws_security_group.allow-loan-eligibility-to-database.id}"]
-  skip_final_snapshot       = true
-  storage_encrypted         = true
-  kms_key_id                = "${aws_kms_alias.rds.target_key_arn}"
-  backup_retention_period   = 30
-  snapshot_identifier       = "${var.rds_snapshot_to_restore}"
-  backtrack_window          = "${24 * 60 * 60}"
+  database_name = "LoanEligibilityDB"
+  master_username = local.loan_eligibility_db_secret["db_user"]
+  master_password = local.loan_eligibility_db_secret["db_password"]
+  db_subnet_group_name = aws_db_subnet_group.aurora_subnet_group.name
+  vpc_security_group_ids = [
+    aws_security_group.allow-loan-eligibility-to-database.id]
+  skip_final_snapshot = true
+  storage_encrypted = true
+  kms_key_id = aws_kms_alias.rds.target_key_arn
+  backup_retention_period = 30
+  snapshot_identifier = var.rds_snapshot_to_restore
+  backtrack_window = 24 * 60 * 60
 
   enabled_cloudwatch_logs_exports = [
     "audit",
@@ -155,37 +160,46 @@ resource "aws_rds_cluster" "loan_eligibility_database_cluster" {
     ]
   }
   tags = {
-    Name        = "Loan Eligibility RdsDatabase Cluster"
-    App         = "Loan Eligibility"
-    Component   = "DB"
-    Environment = "${var.environment_name}"
+    Name = "Loan Eligibility RdsDatabase Cluster"
+    App = "Loan Eligibility"
+    Component = "DB"
+    Environment = var.environment_name
   }
 }
 
 resource "aws_db_subnet_group" "aurora_subnet_group" {
   name        = "${var.environment_name}_aurora_db_subnet_group"
   description = "Allowed subnets for Aurora DB cluster instances"
-  subnet_ids  = "${data.aws_subnet_ids.private_subnets.ids}"
+  subnet_ids = data.aws_subnet_ids.private_subnets.ids
 
   tags = {
-    Name        = "Loan Eligibility RdsDatabase"
-    App         = "Loan Eligibility"
-    Component   = "DB"
-    Environment = "${var.environment_name}"
+    Name = "Loan Eligibility RdsDatabase"
+    App = "Loan Eligibility"
+    Component = "DB"
+    Environment = var.environment_name
   }
 }
 
 resource "aws_security_group" "allow-loan-eligibility-to-database" {
-  vpc_id      = "${data.aws_vpc.vpc_data.id}"
+  vpc_id = data.aws_vpc.vpc_data.id
   name_prefix = "loan-eligibility_instace_to_db"
 
   ingress {
     from_port = 3306
-    protocol  = "tcp"
-    to_port   = 3306
-    self      = true
+    protocol = "tcp"
+    to_port = 3306
+    self = true
   }
-  // TODO Add EKS and worker node in security group to port 3306
+  ingress {
+    from_port = 3306
+    protocol = "tcp"
+    to_port = 3306
+    description = "Allow EKS and Worker Node to Aurora DB"
+    security_groups = [
+      "sg-06fb5c74877e0b1e0",
+      "sg-08df2479084e93fb1",
+      "sg-0f0964963fe730f3b"]
+  }
   # ingress {
   #   from_port = 3306
   #   protocol  = "tcp"
@@ -194,15 +208,15 @@ resource "aws_security_group" "allow-loan-eligibility-to-database" {
   # }
   egress {
     from_port = 3306
-    protocol  = "tcp"
-    to_port   = 3306
-    self      = true
+    protocol = "tcp"
+    to_port = 3306
+    self = true
   }
 
   tags = {
-    Name        = "Loan Eligibility RdsDatabase SecurityGroup"
-    App         = "Loan Eligibility"
-    Environment = "${var.environment_name}"
+    Name = "Loan Eligibility RdsDatabase SecurityGroup"
+    App = "Loan Eligibility"
+    Environment = var.environment_name
   }
   lifecycle {
     create_before_destroy = true

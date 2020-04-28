@@ -223,6 +223,12 @@ task_apply() {
     exit 1
   fi
 
+  if runs_inside_gocd; then
+    args="-auto-approve"
+  else
+    args=""
+  fi
+
   terraform apply -var-file $env.tfvars $args
 
   cd - >/dev/null
@@ -236,6 +242,12 @@ task_destroy() {
   if [ -z "${env}" ]; then
     echo "Needs environment"
     exit 1
+  fi
+
+  if runs_inside_gocd; then
+    args="-auto-approve"
+  else
+    args=""
   fi
 
   terraform destroy -var-file $env.tfvars $args
