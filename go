@@ -184,8 +184,8 @@ terraform() {
   return $exit
 }
 
-help__Infraplan="provision backend infrastructure"
-task_Infraplan() {
+help__plan="provision backend infrastructure"
+task_plan() {
   local env=$1
   local account=$(account_for_env $env)
 
@@ -200,8 +200,8 @@ task_Infraplan() {
   cd - >/dev/null
 }
 
-help__InfraApply="provision backend infrastructure"
-help__InfraApply() {
+help__Apply="provision backend infrastructure"
+help__Apply() {
   local env=$1
   local account=$(account_for_env $env)
 
@@ -221,8 +221,8 @@ help__InfraApply() {
   cd - >/dev/null
 }
 
-help__InfraDestroy="destroy backend infrastructure"
-task_InfraDestroy() {
+help__Destroy="destroy backend infrastructure"
+task_Destroy() {
   local env=$1
   local account=$(account_for_env $env)
 
