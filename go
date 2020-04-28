@@ -85,19 +85,6 @@ gradle() {
   return $exit
 }
 
-kubectl() {
-
-  cd ${SCRIPT_DIR}
-
-  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.kubernetes"
-
-  docker_run "$@"
-
-  local exit=$?
-  cd - >/dev/null
-  return $exit
-}
-
 assume_role() {
   account_id="$1"
   role="$2"
@@ -197,8 +184,8 @@ terraform() {
   return $exit
 }
 
-help__plan="provision backend infrastructure"
-task_plan() {
+help__Infraplan="provision backend infrastructure"
+task_Infraplan() {
   local env=$1
   local account=$(account_for_env $env)
 
@@ -213,8 +200,8 @@ task_plan() {
   cd - >/dev/null
 }
 
-help__apply="provision backend infrastructure"
-task_apply() {
+help__InfraApply="provision backend infrastructure"
+help__InfraApply() {
   local env=$1
   local account=$(account_for_env $env)
 
@@ -234,8 +221,8 @@ task_apply() {
   cd - >/dev/null
 }
 
-help__destroy="destroy backend infrastructure"
-task_destroy() {
+help__InfraDestroy="destroy backend infrastructure"
+task_InfraDestroy() {
   local env=$1
   local account=$(account_for_env $env)
 
@@ -295,6 +282,20 @@ add_container_tag() {
       --image-manifest "${image_manifest}"
   )
 }
+
+kubectl() {
+
+  cd ${SCRIPT_DIR}
+
+  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.kubernetes"
+
+  docker_run "$@"
+
+  local exit=$?
+  cd - >/dev/null
+  return $exit
+}
+
 help__kubernetes_apply="kubectl apply deployment"
 task_kubernetes_apply_deployment() {
   local env=$1
@@ -341,8 +342,19 @@ task_kubernetes_apply_ingress() {
 
 }
 
-## main
+#help__kubernetes_TestDB="Test DB Connection with service"
+#task__kubernetes_TestDB() {
+#  local env=$1
+#  (
+#    assume_role $(account_id_for_name ${env}) "deploy-app"
+#    aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
+#
+#    cp ~/.kube/config ./infrastructure/k8s/config
+#    kubectl kubectl
+#  )
+#}
 
+## main
 list_all_helps() {
   compgen -v | egrep "^help__.*"
 }
