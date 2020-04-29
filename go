@@ -118,6 +118,68 @@ push-container() {
   echo "${var_name}=${repo_url}:${revision_tag}" >>${app_name}-container.info
 }
 
+tf() {
+  if runs_inside_gocd; then
+    local docker_user_args="-u $(id -u)"
+  else
+    local docker_user_args=""
+  fi
+
+  DOCKER_ARGS="${DOCKER_ARGS} ${docker_user_args}"
+  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.terraform"
+  docker_run "$@"
+}
+
+terraform() {
+  cd ${SCRIPT_DIR}/infrastructure/app
+  tf "$@"
+  local exit=$?
+  cd - >/dev/null
+  return $exit
+}
+
+kubectl() {
+
+  cd ${SCRIPT_DIR}
+
+  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.kubernetes"
+
+  docker_run "$@"
+
+  local exit=$?
+  cd - >/dev/null
+  return $exit
+}
+
+terraform_ecr() {
+  cd ${SCRIPT_DIR}/infrastructure/ecr
+  tf "$@"
+  local exit=$?
+  cd - >/dev/null
+  return $exit
+}
+
+add_container_tag() {
+  local repository_name=$1
+  local image_tag=$2
+  local new_image_tag=$3
+
+  (
+    assume_role $(account_id_for_name "tools") "push-containers"
+
+    local image_manifest=$(aws ecr batch-get-image --region ap-southeast-1 \
+      --repository-name ${repository_name} \
+      --image-ids imageTag=${image_tag} \
+      --query 'images[].imageManifest' \
+      --output text)
+
+    aws ecr put-image --region ap-southeast-1 \
+      --repository-name ${repository_name} \
+      --image-tag "${new_image_tag}" \
+      --image-manifest "${image_manifest}"
+  )
+}
+
 ## tasks
 help__lint="checking code format"
 task_lint() {
@@ -162,26 +224,6 @@ task_containerize() {
 help__push_container="push image to ECR"
 task_push_container() {
   push-container "688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/coreplatform/loan-eligibility-service" loan-eligibility-service
-}
-
-tf() {
-  if runs_inside_gocd; then
-    local docker_user_args="-u $(id -u)"
-  else
-    local docker_user_args=""
-  fi
-
-  DOCKER_ARGS="${DOCKER_ARGS} ${docker_user_args}"
-  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.terraform"
-  docker_run "$@"
-}
-
-terraform() {
-  cd ${SCRIPT_DIR}/infrastructure/app
-  tf "$@"
-  local exit=$?
-  cd - >/dev/null
-  return $exit
 }
 
 help__apply="Provision backend microservices infrastructure"
@@ -256,14 +298,6 @@ task_plan() {
   cd - >/dev/null
 }
 
-terraform_ecr() {
-  cd ${SCRIPT_DIR}/infrastructure/ecr
-  tf "$@"
-  local exit=$?
-  cd - >/dev/null
-  return $exit
-}
-
 help__infrastructure_apply_ecr="provision ecr"
 task_infrastructure_apply_ecr() {
   if runs_inside_gocd; then
@@ -276,42 +310,8 @@ task_infrastructure_apply_ecr() {
   terraform_ecr apply $args
 }
 
-add_container_tag() {
-  local repository_name=$1
-  local image_tag=$2
-  local new_image_tag=$3
-
-  (
-    assume_role $(account_id_for_name "tools") "push-containers"
-
-    local image_manifest=$(aws ecr batch-get-image --region ap-southeast-1 \
-      --repository-name ${repository_name} \
-      --image-ids imageTag=${image_tag} \
-      --query 'images[].imageManifest' \
-      --output text)
-
-    aws ecr put-image --region ap-southeast-1 \
-      --repository-name ${repository_name} \
-      --image-tag "${new_image_tag}" \
-      --image-manifest "${image_manifest}"
-  )
-}
-
-kubectl() {
-
-  cd ${SCRIPT_DIR}
-
-  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.kubernetes"
-
-  docker_run "$@"
-
-  local exit=$?
-  cd - >/dev/null
-  return $exit
-}
-
-help__kubernetes_apply="kubectl apply deployment"
-task_kubernetes_apply_deployment() {
+help__kube_apply="kubectl apply deployment"
+task_kube_apply() {
   local env=$1
 
   source loan-eligibility-service-container.info
@@ -324,49 +324,11 @@ task_kubernetes_apply_deployment() {
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
 
     cp ~/.kube/config ./infrastructure/k8s/config
-    kubectl kubectl apply -f infrastructure/k8s/deployment.yaml
+    kubectl kubectl apply -f infrastructure/k8s/${env}/deployment.yaml
     kubectl kubectl patch deployment loan-eligibility --type json -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value":"'${LOAN_ELIGIBILITY_SERVICE_CONTAINER}'"}]'
-  )
-
-}
-
-help__kubernetes_apply="kubectl apply service"
-task_kubernetes_apply_service() {
-  local env=$1
-  (
-    assume_role $(account_id_for_name ${env}) "deploy-app"
-    aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
-
-    cp ~/.kube/config ./infrastructure/k8s/config
     kubectl kubectl apply -f infrastructure/k8s/service.yaml
   )
-
 }
-
-help__kubernetes_apply="kubectl apply ingress"
-task_kubernetes_apply_ingress() {
-  local env=$1
-  (
-    assume_role $(account_id_for_name ${env}) "deploy-app"
-    aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
-
-    cp ~/.kube/config ./infrastructure/k8s/config
-    kubectl kubectl apply -f infrastructure/k8s/ingress.yaml
-  )
-
-}
-
-#help__kubernetes_TestDB="Test DB Connection with service"
-#task__kubernetes_TestDB() {
-#  local env=$1
-#  (
-#    assume_role $(account_id_for_name ${env}) "deploy-app"
-#    aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
-#
-#    cp ~/.kube/config ./infrastructure/k8s/config
-#    kubectl kubectl
-#  )
-#}
 
 ## main
 list_all_helps() {
