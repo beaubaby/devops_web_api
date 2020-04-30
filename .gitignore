@@ -38,5 +38,6 @@ out/
 /infrastructure/k8s/config
 bin
 config
-loan*.yaml
-file
+/infrastructure/k8s/output
+*.tfstate
+*.tfstate.*

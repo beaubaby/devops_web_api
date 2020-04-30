@@ -321,40 +321,39 @@ task_kube_apply() {
   fi
   (
     assume_role $(account_id_for_name ${env}) "deploy-app"
+    secret=$(aws secretsmanager get-secret-value --secret-id ${env}/db-secrets --query SecretString --output text --region ap-southeast-1)
+    secret_encoded=$(printf $secret | base64)
+    rds_endpoint=$(aws rds --region ap-southeast-1 describe-db-cluster-endpoints --query "DBClusterEndpoints[0].Endpoint" --output=text)
+    cd ${SCRIPT_DIR}/infrastructure/k8s
+    tf init
+    tf workspace select $env || tf workspace new $env
+    tf apply --var-file ${env}.tfvars -var "db_password=${secret_encoded}" -var "db_connection_string=${rds_endpoint}" -var "image_url=${LOAN_ELIGIBILITY_SERVICE_CONTAINER}" ${args}
+
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
 
     cp ~/.kube/config ./infrastructure/k8s/config
-    kubectl kubectl apply -f infrastructure/k8s/${env}/deployment.yaml
-    kubectl kubectl patch deployment loan-eligibility --type json -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value":"'${LOAN_ELIGIBILITY_SERVICE_CONTAINER}'"}]'
-    kubectl kubectl apply -f infrastructure/k8s/service.yaml
+    kubectl kubectl apply -f infrastructure/k8s/output
+    cd - >/dev/null
   )
 }
 
-help__create_db_secret="Create loan db secret"
-task_create_db_secret() {
-  local env=$1
-  (
-  assume_role $(account_id_for_name ${env}) "deploy-app"
+# help__create_db_config="Create loan db secret"
+# task_create_db_config() {
+#   local env=$1
+#   (
+#   assume_role $(account_id_for_name ${env}) "deploy-app"
 
-  secret=$(aws secretsmanager get-secret-value --secret-id ${env}/db-secrets --query SecretString --output text --region ap-southeast-1)
-  secret_encoded=$(printf $secret | base64)
-  cat <<EOF > loan-db-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: loan-db-secret
-type: Opaque
-data:
-EOF
-  printf "\n  DB_PASSWORD: $secret_encoded" >> loan-db-secret.yaml
-
-  aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
-  cp ~/.kube/config ./infrastructure/k8s/config
-
-  kubectl kubectl delete -f loan-db-secret.yaml || true
-  kubectl kubectl apply -f loan-db-secret.yaml
-  )
-}
+#   secret=$(aws secretsmanager get-secret-value --secret-id ${env}/db-secrets --query SecretString --output text --region ap-southeast-1)
+#   secret_encoded=$(printf $secret | base64)
+#   rds_endpoint=$(aws rds --region ap-southeast-1 describe-db-cluster-endpoints --query "DBClusterEndpoints[0].Endpoint" --output=text)
+#   cd ${SCRIPT_DIR}/infrastructure/k8s
+#   tf init
+#   tf workspace select $env || tf workspace new $env
+#   tf apply --var-file ${env}.tfvars -var "db_password=${secret_encoded}" -var "db_connection_string=${rds_endpoint}" ${args}
+  
+#   cd - >/dev/null
+#   )
+# }
 
 ## main
 list_all_helps() {
