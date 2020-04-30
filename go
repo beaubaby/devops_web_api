@@ -343,10 +343,9 @@ task_kube_apply() {
     tf apply --var-file ${env}.tfvars -var "db_password=${secret_encoded}" -var "db_connection_string=${rds_endpoint}" -var "image_url=${LOAN_ELIGIBILITY_SERVICE_CONTAINER}" ${args}
 
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
-
+    cd - >/dev/null
     cp ~/.kube/config ./infrastructure/k8s/config
     kubectl kubectl apply -f infrastructure/k8s/output
-    cd - >/dev/null
   )
 }
 
