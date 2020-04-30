@@ -319,12 +319,25 @@ task_kube_apply() {
     echo "expected LOAN_ELIGIBILITY_SERVICE_CONTAINER"
     exit 1
   fi
+
+  if [ -z "${env}" ]; then
+    echo "Needs environment"
+    exit 1
+  fi
+
   (
     assume_role $(account_id_for_name ${env}) "deploy-app"
     secret=$(aws secretsmanager get-secret-value --secret-id ${env}/db-secrets --query SecretString --output text --region ap-southeast-1)
     secret_encoded=$(printf $secret | base64)
     rds_endpoint=$(aws rds --region ap-southeast-1 describe-db-cluster-endpoints --query "DBClusterEndpoints[0].Endpoint" --output=text)
     cd ${SCRIPT_DIR}/infrastructure/k8s
+
+    if runs_inside_gocd; then
+      args="-auto-approve"
+    else
+      args=""
+    fi
+
     tf init
     tf workspace select $env || tf workspace new $env
     tf apply --var-file ${env}.tfvars -var "db_password=${secret_encoded}" -var "db_connection_string=${rds_endpoint}" -var "image_url=${LOAN_ELIGIBILITY_SERVICE_CONTAINER}" ${args}
