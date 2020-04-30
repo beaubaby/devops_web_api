@@ -330,6 +330,32 @@ task_kube_apply() {
   )
 }
 
+help__create_db_secret="Create loan db secret"
+task_create_db_secret() {
+  local env=$1
+  (
+  assume_role $(account_id_for_name ${env}) "deploy-app"
+
+  secret=$(aws secretsmanager get-secret-value --secret-id ${env}/db-secrets --query SecretString --output text)
+  secret_encoded=$(printf $secret | base64)
+  cat <<EOF > loan-db-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: loan-db-secret
+type: Opaque
+data:
+EOF
+  printf "\n  DB_PASSWORD: $secret_encoded" >> loan-db-secret.yaml
+
+  aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
+  cp ~/.kube/config ./infrastructure/k8s/config
+
+  kubectl kubectl delete -f loan-db-secret.yaml || true
+  kubectl kubectl apply -f loan-db-secret.yaml
+  )
+}
+
 ## main
 list_all_helps() {
   compgen -v | egrep "^help__.*"

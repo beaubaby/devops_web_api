@@ -36,5 +36,7 @@ out/
 .terraform/
 *-container.info
 /infrastructure/k8s/config
-
 bin
+config
+loan*.yaml
+file
