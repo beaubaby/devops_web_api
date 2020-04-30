@@ -336,7 +336,7 @@ task_create_db_secret() {
   (
   assume_role $(account_id_for_name ${env}) "deploy-app"
 
-  secret=$(aws secretsmanager get-secret-value --secret-id ${env}/db-secrets --query SecretString --output text)
+  secret=$(aws secretsmanager get-secret-value --secret-id ${env}/db-secrets --query SecretString --output text --region ap-southeast-1)
   secret_encoded=$(printf $secret | base64)
   cat <<EOF > loan-db-secret.yaml
 apiVersion: v1
