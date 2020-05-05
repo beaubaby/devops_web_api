@@ -108,9 +108,11 @@ resource "aws_rds_cluster_instance" "cluster_instances" {
   count = 2
   identifier_prefix = "${var.environment_name}-aurora-instance-${count.index}"
   cluster_identifier = aws_rds_cluster.loan_eligibility_database_cluster.id
-  instance_class = "db.t3.small"
+  instance_class = "db.t3.medium"
   db_subnet_group_name = aws_db_subnet_group.aurora_subnet_group.name
   apply_immediately = true
+  engine = "aurora-postgresql"
+  engine_version     = "11.6"
 
   tags = {
     Name = "Loan Eligibility RdsDatabase Instance"
@@ -132,6 +134,7 @@ resource "aws_rds_cluster_instance" "cluster_instances" {
 resource "aws_rds_cluster" "loan_eligibility_database_cluster" {
   cluster_identifier_prefix = "${var.environment_name}-aurora-cluster"
   engine = "aurora-postgresql"
+  engine_version     = "11.6"
   database_name = "LoanEligibilityDB"
   master_username = local.loan_eligibility_db_secret["db_user"]
   master_password = local.loan_eligibility_db_secret["db_password"]
@@ -143,13 +146,14 @@ resource "aws_rds_cluster" "loan_eligibility_database_cluster" {
   kms_key_id = aws_kms_alias.rds.target_key_arn
   backup_retention_period = 30
   snapshot_identifier = var.rds_snapshot_to_restore
-  backtrack_window = 24 * 60 * 60
-
+//  backtrack_window = 24 * 60 * 60
+  backtrack_window = 0
   enabled_cloudwatch_logs_exports = [
-    "audit",
-    "error",
-    "general",
-    "slowquery",
+//    "audit",
+//    "error",
+//    "general",
+//    "slowquery",
+    "postgresql",
   ]
   lifecycle {
     prevent_destroy = false
