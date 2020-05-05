@@ -51,7 +51,7 @@ data "aws_iam_policy_document" "rds_kms_key_policy" {
   }
 }
 
-resource "aws_kms_key" "rds" {
+resource "aws_kms_key" "loan_kms_key_rds" {
   tags = {
     Name        = "Loan Eligibility DB Encryption Key"
     App         = "Loan Eligibility"
@@ -62,7 +62,7 @@ resource "aws_kms_key" "rds" {
   policy = data.aws_iam_policy_document.rds_kms_key_policy.json
 }
 
-resource "aws_kms_alias" "rds" {
-  target_key_id = aws_kms_key.rds.id
-  name = "alias/${var.environment_name}/rds"
+resource "aws_kms_alias" "loan_kms_alias_rds" {
+  target_key_id = aws_kms_key.loan_kms_key_rds.id
+  name = "alias/${var.environment_name}/loan-kms-alias-rds"
 }

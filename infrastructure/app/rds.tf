@@ -1,4 +1,3 @@
-data "aws_kms_alias" "db_secrets" { name = "alias/${var.environment_name}/db-secrets" }
 locals {
   loan_eligibility_db_secret = {
     db_user     = "LoanDBUser",
@@ -14,8 +13,7 @@ resource "random_string" "password" {
 
 resource "aws_secretsmanager_secret" "loan_eligibility_db_secret" {
   count = var.create_secret ? 1 : 0
-  name = "${var.environment_name}/db-secrets"
-  kms_key_id = data.aws_kms_alias.db_secrets.target_key_id
+  name = "${var.environment_name}/loan-db-secrets"
 }
 
 resource "aws_secretsmanager_secret_version" "secret_version" {
@@ -143,7 +141,7 @@ resource "aws_rds_cluster" "loan_eligibility_database_cluster" {
     aws_security_group.allow-loan-eligibility-to-database.id]
   skip_final_snapshot = true
   storage_encrypted = true
-  kms_key_id = aws_kms_alias.rds.target_key_arn
+  kms_key_id = aws_kms_alias.loan_kms_alias_rds.target_key_arn
   backup_retention_period = 30
   snapshot_identifier = var.rds_snapshot_to_restore
 //  backtrack_window = 24 * 60 * 60
