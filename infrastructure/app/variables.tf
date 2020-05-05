@@ -10,3 +10,5 @@ variable "create_secret" {
   description = "If false, this module does nothing (since tf doesn't support conditional modules)"
   type        = bool
 }
+
+variable "db_security_group" {}

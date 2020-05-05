@@ -131,6 +131,7 @@ resource "aws_rds_cluster_instance" "cluster_instances" {
 
 resource "aws_rds_cluster" "loan_eligibility_database_cluster" {
   cluster_identifier_prefix = "${var.environment_name}-aurora-cluster"
+  engine = "aurora-postgresql"
   database_name = "LoanEligibilityDB"
   master_username = local.loan_eligibility_db_secret["db_user"]
   master_password = local.loan_eligibility_db_secret["db_password"]
@@ -185,20 +186,17 @@ resource "aws_security_group" "allow-loan-eligibility-to-database" {
   name_prefix = "loan-eligibility_instace_to_db"
 
   ingress {
-    from_port = 3306
+    from_port = 5432
     protocol = "tcp"
-    to_port = 3306
+    to_port = 5432
     self = true
   }
   ingress {
-    from_port = 3306
+    from_port = 5432
     protocol = "tcp"
-    to_port = 3306
+    to_port = 5432
     description = "Allow EKS and Worker Node to Aurora DB"
-    security_groups = [
-      "sg-06fb5c74877e0b1e0",
-      "sg-08df2479084e93fb1",
-      "sg-0f0964963fe730f3b"]
+    security_groups = var.db_security_group
   }
   # ingress {
   #   from_port = 3306
@@ -207,9 +205,9 @@ resource "aws_security_group" "allow-loan-eligibility-to-database" {
   #   security_groups = ["${aws_security_group.lambda_to_rds.id}"]
   # }
   egress {
-    from_port = 3306
+    from_port = 5432
     protocol = "tcp"
-    to_port = 3306
+    to_port = 5432
     self = true
   }
 
