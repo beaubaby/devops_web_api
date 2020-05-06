@@ -243,9 +243,9 @@ task_apply() {
     args=""
   fi
 
-  terraform init
-  terraform workspace select $env || tf workspace new $env
-  terraform apply -var-file $env.tfvars $args
+  tf init
+  tf workspace select $env || tf workspace new $env
+  tf apply -var-file $env.tfvars $args
 
   cd - >/dev/null
 }
