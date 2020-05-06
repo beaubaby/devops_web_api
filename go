@@ -226,30 +226,6 @@ task_push_container() {
   push-container "688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/coreplatform/loan-eligibility-service" loan-eligibility-service
 }
 
-help__state=""
-task_state() {
-  local env=$1
-  local account=$(account_for_env $env)
-
-  if [ -z "${env}" ]; then
-    echo "Needs environment"
-    exit 1
-  fi
-
-  cd ${SCRIPT_DIR}/infrastructure/app
-  if runs_inside_gocd; then
-    args="-auto-approve"
-  else
-    args=""
-  fi
-
-  terraform init
-  terraform workspace select $env || tf workspace new $env
-  terraform state list $args
-
-  cd - >/dev/null
-}
-
 help__apply="Provision backend microservices infrastructure"
 task_apply() {
   local env=$1
@@ -353,7 +329,7 @@ task_kube_apply() {
     assume_role $(account_id_for_name ${env}) "deploy-app"
     secret=$(aws secretsmanager get-secret-value --secret-id ${env}/core-db-secrets --query SecretString --output text --region ap-southeast-1)
     secret_encoded=$(printf $secret | base64)
-#    rds_endpoint=$(aws rds --region ap-southeast-1 describe-db-cluster-endpoints --query "DBClusterEndpoints[0].Endpoint" --output=text)
+    #    rds_endpoint=$(aws rds --region ap-southeast-1 describe-db-cluster-endpoints --query "DBClusterEndpoints[0].Endpoint" --output=text)
     rds_endpoint=$(echo dev-aurora-cluster20200506090311561700000002.cluster-cvxrezi9eoap.ap-southeast-1.rds.amazonaws.com)
     cd ${SCRIPT_DIR}/infrastructure/k8s
 
