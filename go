@@ -226,6 +226,30 @@ task_push_container() {
   push-container "688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/coreplatform/loan-eligibility-service" loan-eligibility-service
 }
 
+help__state=""
+task_state() {
+  local env=$1
+  local account=$(account_for_env $env)
+
+  if [ -z "${env}" ]; then
+    echo "Needs environment"
+    exit 1
+  fi
+
+  cd ${SCRIPT_DIR}/infrastructure/app
+  if runs_inside_gocd; then
+    args="-auto-approve"
+  else
+    args=""
+  fi
+
+  terraform init
+  terraform workspace select $env || tf workspace new $env
+  terraform state list $args
+
+  cd - >/dev/null
+}
+
 help__apply="Provision backend microservices infrastructure"
 task_apply() {
   local env=$1
@@ -243,9 +267,9 @@ task_apply() {
     args=""
   fi
 
-  tf init
-  tf workspace select $env || tf workspace new $env
-  tf apply -var-file $env.tfvars $args
+  terraform init
+  terraform workspace select $env || tf workspace new $env
+  terraform apply -var-file $env.tfvars $args
 
   cd - >/dev/null
 }
