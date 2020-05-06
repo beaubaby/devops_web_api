@@ -243,9 +243,9 @@ task_apply() {
     args=""
   fi
 
-  terraform init
-  terraform workspace select $env || tf workspace new $env
-  terraform apply -var-file $env.tfvars $args
+  tf init
+  tf workspace select $env || tf workspace new $env
+  tf apply -var-file $env.tfvars $args
 
   cd - >/dev/null
 }
@@ -267,9 +267,9 @@ task_destroy() {
     args=""
   fi
 
-  terraform init
-  terraform workspace select $env || tf workspace new $env
-  terraform destroy -var-file $env.tfvars $args
+  tf init
+  tf workspace select $env || tf workspace new $env
+  tf destroy -var-file $env.tfvars $args
 
   cd - >/dev/null
 }
@@ -291,9 +291,9 @@ task_plan() {
     args=""
   fi
 
-  terraform init
-  terraform workspace select $env || tf workspace new $env
-  terraform plan -var-file $env.tfvars $args
+  tf init
+  tf workspace select $env || tf workspace new $env
+  tf plan -var-file $env.tfvars $args
 
   cd - >/dev/null
 }
@@ -327,9 +327,10 @@ task_kube_apply() {
 
   (
     assume_role $(account_id_for_name ${env}) "deploy-app"
-    secret=$(aws secretsmanager get-secret-value --secret-id ${env}/loan-db-secrets --query SecretString --output text --region ap-southeast-1)
+    secret=$(aws secretsmanager get-secret-value --secret-id ${env}/core-db-secrets --query SecretString --output text --region ap-southeast-1)
     secret_encoded=$(printf $secret | base64)
-    rds_endpoint=$(aws rds --region ap-southeast-1 describe-db-cluster-endpoints --query "DBClusterEndpoints[0].Endpoint" --output=text)
+#    rds_endpoint=$(aws rds --region ap-southeast-1 describe-db-cluster-endpoints --query "DBClusterEndpoints[0].Endpoint" --output=text)
+    rds_endpoint=$(echo dev-aurora-cluster20200506090311561700000002.cluster-cvxrezi9eoap.ap-southeast-1.rds.amazonaws.com)
     cd ${SCRIPT_DIR}/infrastructure/k8s
 
     if runs_inside_gocd; then
@@ -348,24 +349,6 @@ task_kube_apply() {
     kubectl kubectl apply -f infrastructure/k8s/output
   )
 }
-
-# help__create_db_config="Create loan db secret"
-# task_create_db_config() {
-#   local env=$1
-#   (
-#   assume_role $(account_id_for_name ${env}) "deploy-app"
-
-#   secret=$(aws secretsmanager get-secret-value --secret-id ${env}/db-secrets --query SecretString --output text --region ap-southeast-1)
-#   secret_encoded=$(printf $secret | base64)
-#   rds_endpoint=$(aws rds --region ap-southeast-1 describe-db-cluster-endpoints --query "DBClusterEndpoints[0].Endpoint" --output=text)
-#   cd ${SCRIPT_DIR}/infrastructure/k8s
-#   tf init
-#   tf workspace select $env || tf workspace new $env
-#   tf apply --var-file ${env}.tfvars -var "db_password=${secret_encoded}" -var "db_connection_string=${rds_endpoint}" ${args}
-
-#   cd - >/dev/null
-#   )
-# }
 
 ## main
 list_all_helps() {

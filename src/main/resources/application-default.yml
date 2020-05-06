@@ -1,0 +1,17 @@
+#server:
+#  port: 5432
+#spring:
+#  datasource:
+#    url: jdbc:postgresql://${DB_CONNECTION_STRING}/CoreRDSDB?currentSchema=loan_eligibility&useSSL=false
+#    username: ${DB_USER}
+#    password: ${DB_PASSWORD}
+#  jpa:
+#    properties:
+#      hibernate:
+#        generate_statistics: true
+#        ddl-auto: update
+#        jdbc:
+#          time_zone: UTC
+##  flyway:
+##    clean-on-validation-error: true
+##    locations: classpath:db/migration,classpath:db/data/default
