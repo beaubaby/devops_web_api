@@ -140,7 +140,7 @@ terraform() {
 
 kubectl() {
 
-  cd ${SCRIPT_DIR}
+#  cd ${SCRIPT_DIR}
 
   DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.kubernetes"
 
@@ -178,6 +178,20 @@ add_container_tag() {
       --image-tag "${new_image_tag}" \
       --image-manifest "${image_manifest}"
   )
+}
+
+exec_psql() {
+
+  pwd
+#  cd ${SCRIPT_DIR}  
+
+  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.psql"
+
+  docker_run "$@"
+
+  local exit=$? 
+  cd - >/dev/null 
+  return $exit
 }
 
 ## tasks
@@ -342,13 +356,33 @@ task_kube_apply() {
 
     tf init
     tf workspace select $env || tf workspace new $env
-    tf apply --var-file ${env}.tfvars -var "db_password=${secret_encoded}" -var "db_connection_string=${rds_endpoint}" -var "image_url=688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/coreplatform/loan-eligibility-service:3a6d7b8" ${args}
+    tf apply --var-file ${env}.tfvars -var "db_password=${secret_encoded}" -var "db_connection_string=${rds_endpoint}" -var "image_url=${image_url}" ${args}
 
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
     cd - >/dev/null
     cp ~/.kube/config ./infrastructure/k8s/config
     kubectl kubectl apply -f infrastructure/k8s/output
   )
+}
+
+help__init_db="docker to initial database"
+task_init_db() {
+  local env=$1
+
+  (
+    assume_role $(account_id_for_name ${env}) "deploy-app"
+    secret=$(aws secretsmanager get-secret-value --secret-id ${env}/coreplatform-db-secrets --query SecretString --output text --region ap-southeast-1)
+    rds_endpoint=$(echo qa-global-aurora-cluster.cluster-cvxrezi9eoap.ap-southeast-1.rds.amazonaws.com)
+    DB_USER=RDSUser
+    connection_string=postgresql://${DB_USER}:${secret}@${rds_endpoint}/loan_eligibility
+    psql_command='CREATE DATABASE loan_eligibility IF NOT EXISTS;'
+    envsubst <infrastructure/k8s/template/initdb.yaml > output.yaml
+    aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
+    cp ~/.kube/config ./infrastructure/k8s/config
+    kubectl kubectl apply -f output.yaml
+    # exec_psql "$connection_string" "< init/init-postgres-db.sql"
+  )
+
 }
 
 ## main

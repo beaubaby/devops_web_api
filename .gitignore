@@ -35,9 +35,12 @@ out/
 
 .terraform/
 *-container.info
-/infrastructure/k8s/config
 bin
 config
 /infrastructure/k8s/output
 *.tfstate
 *.tfstate.*
+
+## Generated From Go Script
+/infrastructure/k8s/config
+output.yaml
