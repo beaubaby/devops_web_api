@@ -327,10 +327,11 @@ task_kube_apply() {
 
   (
     assume_role $(account_id_for_name ${env}) "deploy-app"
-    secret=$(aws secretsmanager get-secret-value --secret-id ${env}/core-db-secrets --query SecretString --output text --region ap-southeast-1)
+    secret=$(aws secretsmanager get-secret-value --secret-id ${env}/coreplatform-db-secrets --query SecretString --output text --region ap-southeast-1)
     secret_encoded=$(printf $secret | base64)
     #    rds_endpoint=$(aws rds --region ap-southeast-1 describe-db-cluster-endpoints --query "DBClusterEndpoints[0].Endpoint" --output=text)
-    rds_endpoint=$(echo dev-aurora-cluster20200506090311561700000002.cluster-cvxrezi9eoap.ap-southeast-1.rds.amazonaws.com)
+#    rds_endpoint=$(echo dev-aurora-cluster20200506090311561700000002.cluster-cvxrezi9eoap.ap-southeast-1.rds.amazonaws.com)
+    rds_endpoint=$(echo qa-global-aurora-cluster.cluster-cvxrezi9eoap.ap-southeast-1.rds.amazonaws.com)
     cd ${SCRIPT_DIR}/infrastructure/k8s
 
     if runs_inside_gocd; then
@@ -341,7 +342,7 @@ task_kube_apply() {
 
     tf init
     tf workspace select $env || tf workspace new $env
-    tf apply --var-file ${env}.tfvars -var "db_password=${secret_encoded}" -var "db_connection_string=${rds_endpoint}" -var "image_url=${LOAN_ELIGIBILITY_SERVICE_CONTAINER}" ${args}
+    tf apply --var-file ${env}.tfvars -var "db_password=${secret_encoded}" -var "db_connection_string=${rds_endpoint}" -var "image_url=688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/coreplatform/loan-eligibility-service:3a6d7b8" ${args}
 
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
     cd - >/dev/null
