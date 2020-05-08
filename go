@@ -371,16 +371,30 @@ task_init_db() {
 
   (
     assume_role $(account_id_for_name ${env}) "deploy-app"
-    secret=$(aws secretsmanager get-secret-value --secret-id ${env}/coreplatform-db-secrets --query SecretString --output text --region ap-southeast-1)
-    rds_endpoint=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
-    DB_USER=RDSUser
-    connection_string=postgresql://${DB_USER}:${secret}@${rds_endpoint}/loan_eligibility
-    psql_command='CREATE DATABASE loan_eligibility IF NOT EXISTS;'
+    export secret=$(aws secretsmanager get-secret-value --secret-id ${env}/coreplatform-db-secrets --query SecretString --output text --region ap-southeast-1)
+    export rds_endpoint=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
+    export DB_USER=RDSUser
+    export loan_db_pass=123456 #$(openssl rand -base64 17)
+    export connection_string=postgresql://${DB_USER}:${secret}@${rds_endpoint}/postgres
     envsubst <infrastructure/k8s/template/initdb.yaml > output.yaml
+
+    envsubst '${loan_db_pass}' <toolchain-containers/init/init-postgres-db.sql > output.sql
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
     cp ~/.kube/config ./infrastructure/k8s/config
+    kubectl kubectl delete configmap loan-initdb-sql || true
+    kubectl kubectl create configmap loan-initdb-sql --from-file=output.sql
     kubectl kubectl apply -f output.yaml
-    # exec_psql "$connection_string" "< init/init-postgres-db.sql"
+
+    export connection_string=postgresql://loan_user:${loan_db_pass}@${rds_endpoint}/loan_eligibility
+    envsubst <infrastructure/k8s/template/create-schema.yaml > create-schema.yaml
+
+    kubectl kubectl delete configmap loan-create-schema-sql || true
+    kubectl kubectl create configmap loan-create-schema-sql --from-file=toolchain-containers/init/create-schema.sql
+    kubectl kubectl apply -f create-schema.yaml
+
+    kubectl kubectl delete secret loan-db-secret || true
+    envsubst '${loan_db_pass}' <infrastructure/k8s/template/db-secret.yaml > db-secret.yaml
+    kubectl kubectl apply -f db-secret.yaml
   )
 
 }

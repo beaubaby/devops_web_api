@@ -44,3 +44,4 @@ config
 ## Generated From Go Script
 /infrastructure/k8s/config
 output.yaml
+output.sql

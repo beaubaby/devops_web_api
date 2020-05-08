@@ -1,18 +1,17 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: loan-eligibility-service-init-db-job
+  name: loan-eligibility-create-schema-job
 spec:
   template:
     spec:
       containers:
-      - name: loan-eligibility-service-init-db-job
+      - name: loan-eligibility-create-schema-job
         image: alpine:3
         command: ["/bin/sh","-c"]
         args:  
             - apk --update add postgresql-client && rm -rf /var/cache/apk/*;
               echo running_job;
-              psql ${connection_string} -tc "select 'create database loan_eligibility' where not exists (select from pg_database where datname='loan_eligibility')" | xargs -I % psql ${connection_string} -c %;
               psql ${connection_string} < /script/output.sql
         volumeMounts:
           - name: sql-command
@@ -20,5 +19,5 @@ spec:
       volumes:
         - name: sql-command
           configMap:
-            name: loan-initdb-sql
+            name: loan-create-schema-sql
       restartPolicy: Never
