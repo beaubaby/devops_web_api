@@ -372,7 +372,7 @@ task_init_db() {
   (
     assume_role $(account_id_for_name ${env}) "deploy-app"
     secret=$(aws secretsmanager get-secret-value --secret-id ${env}/coreplatform-db-secrets --query SecretString --output text --region ap-southeast-1)
-    rds_endpoint=$(echo qa-global-aurora-cluster.cluster-cvxrezi9eoap.ap-southeast-1.rds.amazonaws.com)
+    rds_endpoint=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
     DB_USER=RDSUser
     connection_string=postgresql://${DB_USER}:${secret}@${rds_endpoint}/loan_eligibility
     psql_command='CREATE DATABASE loan_eligibility IF NOT EXISTS;'
