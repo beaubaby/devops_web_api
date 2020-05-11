@@ -45,3 +45,5 @@ config
 /infrastructure/k8s/config
 output.yaml
 output.sql
+create-schema.yaml
+db-secret.yaml

@@ -9,6 +9,8 @@ begin
    END IF;
 
    GRANT ALL PRIVILEGES ON DATABASE loan_eligibility TO loan_user;
+   DROP schema IF EXISTS  public CASCADE;
+   CREATE SCHEMA IF NOT EXISTS loan_user;
 
 END
 $do$;
