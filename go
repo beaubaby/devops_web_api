@@ -383,7 +383,8 @@ task_init_db() {
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
     cp ~/.kube/config ./infrastructure/k8s/config
     kubectl kubectl delete configmap loan-initdb-sql || true
-    kubectl kubectl create configmap loan-initdb-sql --from-file=output.sql --from-file=toolchain-containers/init/create-schema.sql
+#    kubectl kubectl create configmap loan-initdb-sql --from-file=output.sql --from-file=toolchain-containers/init/create-schema.sql
+    kubectl kubectl create configmap loan-initdb-sql --from-file=toolchain-containers/init/create-schema.sql
 
     kubectl kubectl delete job loan-eligibility-service-init-db-job || true
     kubectl kubectl apply -f output.yaml
