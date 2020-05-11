@@ -5,12 +5,11 @@ begin
    IF NOT EXISTS (
       SELECT FROM pg_user  -- SELECT list can be empty for this
       WHERE  usename = 'loan_user') THEN
-      create user loan_user with login password '${loan_db_pass}';
+      create user loan_user with password '${loan_db_pass}';
    END IF;
 
+   alter user loan_user with password '${loan_db_pass}';
    GRANT ALL PRIVILEGES ON DATABASE loan_eligibility TO loan_user;
-   DROP schema IF EXISTS  public CASCADE;
-   CREATE SCHEMA IF NOT EXISTS loan_user;
 
 END
 $do$;

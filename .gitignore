@@ -43,6 +43,7 @@ config
 
 ## Generated From Go Script
 /infrastructure/k8s/config
+/infrastructure/k8s/template/output.yaml
 output.yaml
 output.sql
 create-schema.yaml

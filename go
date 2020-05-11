@@ -340,11 +340,10 @@ task_kube_apply() {
 
   (
     assume_role $(account_id_for_name ${env}) "deploy-app"
-    secret=$(aws secretsmanager get-secret-value --secret-id ${env}/coreplatform-db-secrets --query SecretString --output text --region ap-southeast-1)
-    secret_encoded=$(printf $secret | base64)
-    #    rds_endpoint=$(aws rds --region ap-southeast-1 describe-db-cluster-endpoints --query "DBClusterEndpoints[0].Endpoint" --output=text)
-#    rds_endpoint=$(echo dev-aurora-cluster20200506090311561700000002.cluster-cvxrezi9eoap.ap-southeast-1.rds.amazonaws.com)
-    rds_endpoint=$(echo qa-global-aurora-cluster.cluster-cvxrezi9eoap.ap-southeast-1.rds.amazonaws.com)
+
+    export LOAN_ELIGIBILITY_SERVICE_CONTAINER=${LOAN_ELIGIBILITY_SERVICE_CONTAINER}
+    export DB_CONNECTION_STRING=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
+    envsubst <infrastructure/k8s/template/deployment.yaml > infrastructure/k8s/template/output.yaml
     cd ${SCRIPT_DIR}/infrastructure/k8s
 
     if runs_inside_gocd; then
@@ -353,14 +352,11 @@ task_kube_apply() {
       args=""
     fi
 
-    tf init
-    tf workspace select $env || tf workspace new $env
-    tf apply --var-file ${env}.tfvars -var "db_password=${secret_encoded}" -var "db_connection_string=${rds_endpoint}" -var "image_url=${image_url}" ${args}
-
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
     cd - >/dev/null
     cp ~/.kube/config ./infrastructure/k8s/config
-    kubectl kubectl apply -f infrastructure/k8s/output
+    kubectl kubectl apply -f infrastructure/k8s/template/output.yaml
+    kubectl kubectl apply -f infrastructure/k8s/template/service.yaml
   )
 }
 
@@ -373,24 +369,27 @@ task_init_db() {
     export secret=$(aws secretsmanager get-secret-value --secret-id ${env}/coreplatform-db-secrets --query SecretString --output text --region ap-southeast-1)
     export rds_endpoint=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
     export DB_USER=RDSUser
-    #export loan_db_pass=$(openssl rand -base64 17)
-    export frist_loan_db_pass=$(aws secretsmanager get-secret-value --secret-id ${env}/loan-eligibility-db-secrets --query SecretString --output text --region ap-southeast-1)
-    export loan_db_pass=$(printf $loan_db_pass | base64)
+    #export loan_db_pass=$(openssl rand -base64 20)
+    export loan_db_pass=$(aws secretsmanager get-secret-value --secret-id ${env}/loan-eligibility-db-secrets --query SecretString --output text --region ap-southeast-1)
+    export loan_db_pass_encoded=$(echo -n "${loan_db_pass}" | base64)
+    #export loan_db_pass_encoded=$(echo -n $loan_db_pass | base64)
     export connection_string=postgresql://${DB_USER}:${secret}@${rds_endpoint}/postgres
+    export connection_string_rds=postgresql://${DB_USER}:${secret}@${rds_endpoint}/loan_eligibility
+    export loan_user_connection_string=postgresql://loan_user:${loan_db_pass}@${rds_endpoint}/loan_eligibility
+
     envsubst <infrastructure/k8s/template/initdb.yaml > output.yaml
 
     envsubst '${loan_db_pass}' <toolchain-containers/init/init-loan-db.sql > output.sql
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
     cp ~/.kube/config ./infrastructure/k8s/config
     kubectl kubectl delete configmap loan-initdb-sql || true
-    kubectl kubectl create configmap loan-initdb-sql --from-file=output.sql
+    kubectl kubectl create configmap loan-initdb-sql --from-file=output.sql --from-file=toolchain-containers/init/create-schema.sql
+
+    kubectl kubectl delete job loan-eligibility-service-init-db-job || true
     kubectl kubectl apply -f output.yaml
 
-    #export connection_string=postgresql://loan_user:${loan_db_pass}@${rds_endpoint}/loan_eligibility
-    #envsubst <infrastructure/k8s/template/create-schema.yaml > create-schema.yaml
-
     kubectl kubectl delete secret loan-db-secret || true
-    envsubst '${loan_db_pass}' <infrastructure/k8s/template/db-secret.yaml > db-secret.yaml
+    envsubst '${loan_db_pass_encoded}' <infrastructure/k8s/template/db-secret.yaml > db-secret.yaml
     kubectl kubectl apply -f db-secret.yaml
   )
 

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: loan-eligibility
-          image: 688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/coreplatform/loan-eligibility-service:4ac332b
+          image: ${LOAN_ELIGIBILITY_SERVICE_CONTAINER}
           imagePullPolicy: Always
           readinessProbe:
             httpGet:
@@ -44,7 +44,7 @@ spec:
               cpu: "1"
           env:
             - name: DB_CONNECTION_STRING
-              value: dev-global-aurora-cluster.cluster-cvxrezi9eoap.ap-southeast-1.rds.amazonaws.com
+              value: ${DB_CONNECTION_STRING}
             - name: DB_USER
               value: loan_user
             - name: DB_PASSWORD
