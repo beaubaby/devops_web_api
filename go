@@ -239,7 +239,7 @@ task_push_container() {
   push-container "688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/coreplatform/loan-eligibility-service" loan-eligibility-service
 }
 
-help__apply="Provision backend microservices infrastructure"
+help__apply="Provision Database secret manager"
 task_apply() {
   local env=$1
   local account=$(account_for_env $env)
@@ -249,7 +249,7 @@ task_apply() {
     exit 1
   fi
 
-  cd ${SCRIPT_DIR}/infrastructure
+  cd ${SCRIPT_DIR}/infrastructure/secret-db
   if runs_inside_gocd; then
     args="-auto-approve"
   else
@@ -263,7 +263,7 @@ task_apply() {
   cd - >/dev/null
 }
 
-help__destroy="Provision backend microservices infrastructure"
+help__destroy="Destroy Database secret manager"
 task_destroy() {
   local env=$1
   local account=$(account_for_env $env)
@@ -273,7 +273,7 @@ task_destroy() {
     exit 1
   fi
 
-  cd ${SCRIPT_DIR}/infrastructure
+  cd ${SCRIPT_DIR}/infrastructure/secret-db
   if runs_inside_gocd; then
     args="-auto-approve"
   else
@@ -287,7 +287,7 @@ task_destroy() {
   cd - >/dev/null
 }
 
-help__plan="Provision backend microservices infrastructure"
+help__plan="Plan Database secret manager"
 task_plan() {
   local env=$1
   local account=$(account_for_env $env)
@@ -297,7 +297,7 @@ task_plan() {
     exit 1
   fi
 
-  cd ${SCRIPT_DIR}/infrastructure
+  cd ${SCRIPT_DIR}/infrastructure/secret-db
   if runs_inside_gocd; then
     args="-auto-approve"
   else
@@ -370,7 +370,7 @@ task_init_db() {
     export rds_endpoint=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
     export DB_USER=RDSUser
     #export loan_db_pass=$(openssl rand -base64 20)
-    export loan_db_pass=$(aws secretsmanager get-secret-value --secret-id ${env}/loan-eligibility-db-secrets --query SecretString --output text --region ap-southeast-1)
+    export loan_db_pass=$(aws secretsmanager get-secret-value --secret-id ${env}/loan-db-secrets --query SecretString --output text --region ap-southeast-1)
     export loan_db_pass_encoded=$(echo -n "${loan_db_pass}" | base64)
     export connection_string=postgresql://${DB_USER}:${secret}@${rds_endpoint}/postgres
     export connection_string_rds=postgresql://${DB_USER}:${secret}@${rds_endpoint}/loan_eligibility
