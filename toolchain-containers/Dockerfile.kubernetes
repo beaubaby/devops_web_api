@@ -5,6 +5,7 @@ COPY ./infrastructure/k8s/config .kube/config
 
 RUN apt-get update && apt-get install -y apt-transport-https gnupg2 && apt-get install -y zip unzip && apt-get install -y vim
 RUN apt-get install -y curl
+RUN apt-get install -y gettext-base
 RUN curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 RUN echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | tee -a /etc/apt/sources.list.d/kubernetes.list
 
