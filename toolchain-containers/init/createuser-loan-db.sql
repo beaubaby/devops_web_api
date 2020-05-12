@@ -1,12 +1,14 @@
 DO
 $do$
-begin
+BEGIN
 
-   if not exists (
-      select from pg_user  -- SELECT list can be empty for this
-      where  usename = 'loan_user') then
-      create user loan_user with password '${loan_db_pass}';
-   end IF;
+   IF NOT EXISTS (
+      SELECT FROM PG_USER  -- SELECT LIST CAN BE EMPTY FOR THIS
+      WHERE  USENAME = 'loan_user') THEN
+      CREATE USER LOAN_USER WITH PASSWORD '${loan_db_pass}';
+   END IF;
+
+   ALTER USER LOAN_USER WITH PASSWORD '${loan_db_pass}';
 
 END
 $do$;

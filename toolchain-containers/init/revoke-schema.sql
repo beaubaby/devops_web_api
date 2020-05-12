@@ -1,8 +1,8 @@
 DO
 $do$
-begin
-    revoke all on schema public from public;
-    revoke connect on database loan_eligibility from public;
+BEGIN
+    REVOKE ALL ON SCHEMA PUBLIC FROM PUBLIC;
+    REVOKE CONNECT ON DATABASE loan_eligibility FROM PUBLIC;
     GRANT ALL PRIVILEGES ON DATABASE loan_eligibility TO loan_user;
     GRANT ALL PRIVILEGES ON SCHEMA public TO loan_user;
 END

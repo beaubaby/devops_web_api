@@ -179,17 +179,14 @@ add_container_tag() {
   )
 }
 
-exec_psql() {
+exec_envsubst() {
 
   pwd
-  #  cd ${SCRIPT_DIR}
-
-  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.psql"
+  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.exec_envsubst envsubst"
 
   docker_run "$@"
 
   local exit=$? 
-  cd - >/dev/null 
   return $exit
 }
 
@@ -343,7 +340,7 @@ task_kube_apply() {
 
     export LOAN_ELIGIBILITY_SERVICE_CONTAINER=${LOAN_ELIGIBILITY_SERVICE_CONTAINER}
     export DB_CONNECTION_STRING=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
-    envsubst <infrastructure/k8s/template/deployment.yaml >infrastructure/k8s/template/output.yaml
+    exec_envsubst exec_envsubst envsubst <infrastructure/k8s/template/deployment.yaml >infrastructure/k8s/template/output.yaml
     cd ${SCRIPT_DIR}/infrastructure/k8s
 
     if runs_inside_gocd; then
@@ -375,9 +372,9 @@ task_init_db() {
     export connection_string=postgresql://${DB_USER}:${secret}@${rds_endpoint}/postgres
     export connection_string_rds=postgresql://${DB_USER}:${secret}@${rds_endpoint}/loan_eligibility
 
-    envsubst <infrastructure/k8s/template/initdb.yaml >output.yaml
+    exec_envsubst envsubst <infrastructure/k8s/template/initdb.yaml >output.yaml
 
-    envsubst '${loan_db_pass}' <toolchain-containers/init/createuser-loan-db.sql >output.sql
+    exec_envsubst envsubst '${loan_db_pass}' <toolchain-containers/init/createuser-loan-db.sql >output.sql
 
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
     cp ~/.kube/config ./infrastructure/k8s/config
@@ -390,7 +387,7 @@ task_init_db() {
     kubectl kubectl apply -f output.yaml
 
     kubectl kubectl delete secret loan-db-secret || true
-    envsubst '${loan_db_pass_encoded}' <infrastructure/k8s/template/db-secret.yaml >db-secret.yaml
+    exec_envsubst envsubst '${loan_db_pass_encoded}' <infrastructure/k8s/template/db-secret.yaml >db-secret.yaml
     kubectl kubectl apply -f db-secret.yaml
   )
 }
