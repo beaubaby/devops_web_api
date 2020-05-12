@@ -13,15 +13,18 @@ spec:
             - apk --update add postgresql-client && rm -rf /var/cache/apk/*;
               echo running_job;
               psql ${connection_string} -tc "select 'create database loan_eligibility' where not exists (select from pg_database where datname='loan_eligibility')" | xargs -I % psql ${connection_string} -c %;
-              psql ${connection_string_rds} -tc "select 'create user loan_user' where not exists (select from pg_catalog.pg_roles where rolname = 'loan_user')" | xargs -I % psql ${connection_string_rds} -c %;
-              psql ${connection_string_rds} -tc "alter user loan_user with password '${loan_db_pass}'" | xargs -I % psql ${connection_string_rds} -c %;
-              psql ${connection_string_rds} -tc "grant all privileges on database loan_eligibility to loan_user" | xargs -I % psql ${connection_string_rds} -c %;
-              psql ${loan_user_connection_string} < /script/create-schema.sql
+              psql ${connection_string_rds} -f /script/output.sql;
+              psql ${connection_string_rds} -f /schema_script/revoke-schema.sql;
         volumeMounts:
           - name: sql-command
             mountPath: /script/
+          - name: schema-command
+            mountPath: /schema_script
       volumes:
         - name: sql-command
           configMap:
             name: loan-initdb-sql
+        - name: schema-command
+          configMap:
+            name: loan-schema-sql
       restartPolicy: Never

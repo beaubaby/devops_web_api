@@ -140,7 +140,7 @@ terraform() {
 
 kubectl() {
 
- # cd ${SCRIPT_DIR}
+  # cd ${SCRIPT_DIR}
 
   DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.kubernetes"
 
@@ -182,7 +182,7 @@ add_container_tag() {
 exec_psql() {
 
   pwd
-#  cd ${SCRIPT_DIR}  
+  #  cd ${SCRIPT_DIR}
 
   DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.psql"
 
@@ -343,7 +343,7 @@ task_kube_apply() {
 
     export LOAN_ELIGIBILITY_SERVICE_CONTAINER=${LOAN_ELIGIBILITY_SERVICE_CONTAINER}
     export DB_CONNECTION_STRING=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
-    envsubst <infrastructure/k8s/template/deployment.yaml > infrastructure/k8s/template/output.yaml
+    envsubst <infrastructure/k8s/template/deployment.yaml >infrastructure/k8s/template/output.yaml
     cd ${SCRIPT_DIR}/infrastructure/k8s
 
     if runs_inside_gocd; then
@@ -372,28 +372,27 @@ task_init_db() {
     #export loan_db_pass=$(openssl rand -base64 20)
     export loan_db_pass=$(aws secretsmanager get-secret-value --secret-id ${env}/loan-eligibility-db-secrets --query SecretString --output text --region ap-southeast-1)
     export loan_db_pass_encoded=$(echo -n "${loan_db_pass}" | base64)
-    #export loan_db_pass_encoded=$(echo -n $loan_db_pass | base64)
     export connection_string=postgresql://${DB_USER}:${secret}@${rds_endpoint}/postgres
     export connection_string_rds=postgresql://${DB_USER}:${secret}@${rds_endpoint}/loan_eligibility
-    export loan_user_connection_string=postgresql://loan_user:${loan_db_pass}@${rds_endpoint}/loan_eligibility
 
-    envsubst <infrastructure/k8s/template/initdb.yaml > output.yaml
+    envsubst <infrastructure/k8s/template/initdb.yaml >output.yaml
 
-    envsubst '${loan_db_pass}' <toolchain-containers/init/init-loan-db.sql > output.sql
+    envsubst '${loan_db_pass}' <toolchain-containers/init/createuser-loan-db.sql >output.sql
+
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
     cp ~/.kube/config ./infrastructure/k8s/config
     kubectl kubectl delete configmap loan-initdb-sql || true
-#    kubectl kubectl create configmap loan-initdb-sql --from-file=output.sql --from-file=toolchain-containers/init/create-schema.sql
-    kubectl kubectl create configmap loan-initdb-sql --from-file=toolchain-containers/init/create-schema.sql
+    kubectl kubectl create configmap loan-initdb-sql --from-file=output.sql
+    kubectl kubectl delete configmap loan-schema-sql || true
+    kubectl kubectl create configmap loan-schema-sql --from-file=toolchain-containers/init/revoke-schema.sql
 
     kubectl kubectl delete job loan-eligibility-service-init-db-job || true
     kubectl kubectl apply -f output.yaml
 
     kubectl kubectl delete secret loan-db-secret || true
-    envsubst '${loan_db_pass_encoded}' <infrastructure/k8s/template/db-secret.yaml > db-secret.yaml
+    envsubst '${loan_db_pass_encoded}' <infrastructure/k8s/template/db-secret.yaml >db-secret.yaml
     kubectl kubectl apply -f db-secret.yaml
   )
-
 }
 
 ## main
