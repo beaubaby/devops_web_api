@@ -370,7 +370,7 @@ task_init_db() {
     export rds_endpoint=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
     export DB_USER=RDSUser
     #export loan_db_pass=$(openssl rand -base64 20)
-    export loan_db_pass=$(aws secretsmanager get-secret-value --secret-id ${env}/loan-db-secrets --query SecretString --output text --region ap-southeast-1)
+    export loan_db_pass=$(aws secretsmanager get-secret-value --secret-id ${env}/loan-secrets --query SecretString --output text --region ap-southeast-1)
     export loan_db_pass_encoded=$(echo -n "${loan_db_pass}" | base64)
     export connection_string=postgresql://${DB_USER}:${secret}@${rds_endpoint}/postgres
     export connection_string_rds=postgresql://${DB_USER}:${secret}@${rds_endpoint}/loan_eligibility

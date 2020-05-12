@@ -5,7 +5,7 @@ resource "random_password" "password" {
 }
 
 resource "aws_secretsmanager_secret" "db_password" {
-  name                    = "${var.environment_name}/${var.service_name}-db-secrets"
+  name                    = "${var.environment_name}/${var.service_name}-secrets"
   recovery_window_in_days = 0
 }
 
