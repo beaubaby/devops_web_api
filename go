@@ -182,7 +182,7 @@ add_container_tag() {
 exec_envsubst() {
 
   pwd
-  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.exec_envsubst envsubst"
+  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.envsubst"
 
   docker_run "$@"
 
