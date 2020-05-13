@@ -40,7 +40,7 @@ xenvsubst() {
     image_id=$(docker build  -f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.envsubst . -q)
   fi
 
-  DOCKER_ARGS="${DOCKER_ARGS} -v ${HOME}/.aws:/root/.aws"
+  DOCKER_ARGS="-i -v ${HOME}/.aws:/root/.aws"
 
   docker run --rm \
     -u "$(id -u)" \
@@ -48,7 +48,7 @@ xenvsubst() {
     -e "SUBENV_PG_FUNC=\$do\$" \
     --env-file <(env | grep SUBENV_) \
     --env-file <(env | grep AWS_) \
-    -i ${DOCKER_ARGS} ${image_id} "$@"
+     ${DOCKER_ARGS} ${image_id} "$@"
 }
 
 docker_run() {
@@ -371,7 +371,7 @@ task_init_db() {
 
     export secret=$(aws secretsmanager get-secret-value --secret-id ${env}/coreplatform-db-secrets --query SecretString --output text --region ap-southeast-1)
     export rds_endpoint=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
-
+    env | grep rds_endpoint
     export SUBENV_loan_db_pass=$(aws secretsmanager get-secret-value --secret-id ${env}/loan-secrets --query SecretString --output text --region ap-southeast-1)
     export SUBENV_loan_db_pass_encoded=$(echo -n "${SUBENV_loan_db_pass}" | base64)
     export SUBENV_connection_string=postgresql://RDSUser:${secret}@${rds_endpoint}/postgres
