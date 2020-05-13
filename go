@@ -40,12 +40,15 @@ xenvsubst() {
     image_id=$(docker build  -f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.envsubst . -q)
   fi
 
+  DOCKER_ARGS="${DOCKER_ARGS} -v ${HOME}/.aws:/root/.aws"
+
   docker run --rm \
     -u "$(id -u)" \
     --hostname $(hostname) \
     -e "SUBENV_PG_FUNC=\$do\$" \
     --env-file <(env | grep SUBENV_) \
-    -i ${image_id} "$@"
+    --env-file <(env | grep AWS_) \
+    -i ${DOCKER_ARGS} ${image_id} "$@"
 }
 
 docker_run() {
@@ -378,6 +381,8 @@ task_init_db() {
 
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
     cp ~/.kube/config ./infrastructure/k8s/config
+    echo "cat output.sql"
+    cat output.sql
     kubectl kubectl delete configmap loan-initdb-sql || true
     kubectl kubectl create configmap loan-initdb-sql --from-file=output.sql
     kubectl kubectl delete configmap loan-schema-sql || true
@@ -386,6 +391,8 @@ task_init_db() {
     kubectl kubectl delete job loan-eligibility-service-init-db-job || true
 
     xenvsubst <infrastructure/k8s/template/initdb.yaml >output.yaml
+    echo "cat output.yaml"
+    cat output.yaml
     kubectl kubectl apply -f output.yaml
 
     kubectl kubectl delete secret loan-db-secret || true
