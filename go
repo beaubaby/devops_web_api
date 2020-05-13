@@ -370,7 +370,7 @@ task_init_db() {
     assume_role $(account_id_for_name ${env}) "deploy-app"
 
     export secret=$(aws secretsmanager get-secret-value --secret-id ${env}/coreplatform-db-secrets --query SecretString --output text --region ap-southeast-1)
-    export rds_endpoint=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
+    export rds_endpoint=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text --region ap-southeast-1 | grep ${env}-global)
     env | grep rds_endpoint
     export SUBENV_loan_db_pass=$(aws secretsmanager get-secret-value --secret-id ${env}/loan-secrets --query SecretString --output text --region ap-southeast-1)
     export SUBENV_loan_db_pass_encoded=$(echo -n "${SUBENV_loan_db_pass}" | base64)
