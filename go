@@ -34,6 +34,26 @@ runs_inside_gocd() {
   test -n "${GO_JOB_NAME}"
 }
 
+xenvsubst() {
+  local image_id
+  if [ -z "${image_id}" ]; then
+    image_id=$(docker build  -f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.envsubst . -q)
+  fi
+
+  if runs_inside_gocd; then
+    local args="-v godata:/godata -w $(pwd)"
+  else
+    local args="-i -v $(pwd):/workspace:cached -w /workspace"
+  fi
+
+  docker run --rm \
+    -u "$(id -u)" \
+    --hostname $(hostname) \
+    -e "SUBENV_PG_FUNC=\$do\$" \
+    --env-file <(env | grep SUBENV_) \
+    ${args} ${image_id} "$@"""
+}
+
 docker_run() {
   local image_id
   if [ -z "${image_id}" ]; then
@@ -327,9 +347,9 @@ task_kube_apply() {
   (
     assume_role $(account_id_for_name ${env}) "deploy-app"
 
-    export LOAN_ELIGIBILITY_SERVICE_CONTAINER=${LOAN_ELIGIBILITY_SERVICE_CONTAINER}
-    export DB_CONNECTION_STRING=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
-    envsubst <infrastructure/k8s/template/deployment.yaml >infrastructure/k8s/template/output.yaml
+    export SUBENV_LOAN_ELIGIBILITY_SERVICE_CONTAINER=${LOAN_ELIGIBILITY_SERVICE_CONTAINER}
+    export SUBENV_DB_CONNECTION_STRING=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
+    xenvsubst <infrastructure/k8s/template/deployment.yaml >infrastructure/k8s/template/output.yaml
     cd ${SCRIPT_DIR}/infrastructure/k8s
 
     if runs_inside_gocd; then
@@ -349,19 +369,19 @@ task_kube_apply() {
 help__init_db="docker to initial database"
 task_init_db() {
   local env=$1
-
   (
     assume_role $(account_id_for_name ${env}) "deploy-app"
+
     export secret=$(aws secretsmanager get-secret-value --secret-id ${env}/coreplatform-db-secrets --query SecretString --output text --region ap-southeast-1)
     export rds_endpoint=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
-    export DB_USER=RDSUser
-    export loan_db_pass=$(aws secretsmanager get-secret-value --secret-id ${env}/loan-secrets --query SecretString --output text --region ap-southeast-1)
-    export loan_db_pass_encoded=$(echo -n "${loan_db_pass}" | base64)
-    export connection_string=postgresql://${DB_USER}:${secret}@${rds_endpoint}/postgres
-    export connection_string_rds=postgresql://${DB_USER}:${secret}@${rds_endpoint}/loan_eligibility
 
-    envsubst <infrastructure/k8s/template/initdb.yaml >output.yaml
-    envsubst '${loan_db_pass}' <infrastructure/k8s/template/init/createuser-loan-db.sql >output.sql
+    export SUBENV_loan_db_pass=$(aws secretsmanager get-secret-value --secret-id ${env}/loan-secrets --query SecretString --output text --region ap-southeast-1)
+    export SUBENV_loan_db_pass_encoded=$(echo -n "${SUBENV_loan_db_pass}" | base64)
+    export SUBENV_connection_string=postgresql://RDSUser:${secret}@${rds_endpoint}/postgres
+    export SUBENV_connection_string_rds=postgresql://RDSUser:${secret}@${rds_endpoint}/loan_eligibility
+
+    xenvsubst <infrastructure/k8s/template/initdb.yaml >output.yaml
+    xenvsubst <infrastructure/k8s/template/init/createuser-loan-db.sql >output.sql
 
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
     cp ~/.kube/config ./infrastructure/k8s/config
@@ -374,7 +394,7 @@ task_init_db() {
     kubectl kubectl apply -f output.yaml
 
     kubectl kubectl delete secret loan-db-secret || true
-    envsubst '${loan_db_pass_encoded}' <infrastructure/k8s/template/db-secret.yaml >db-secret.yaml
+    xenvsubst <infrastructure/k8s/template/db-secret.yaml >db-secret.yaml
     kubectl kubectl apply -f db-secret.yaml
   )
 }
