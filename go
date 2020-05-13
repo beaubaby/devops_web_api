@@ -155,8 +155,6 @@ terraform() {
 
 kubectl() {
 
-  # cd ${SCRIPT_DIR}
-
   DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.kubernetes"
 
   docker_run "$@"
