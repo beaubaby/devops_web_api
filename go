@@ -41,7 +41,7 @@ xenvsubst() {
   fi
 
   if runs_inside_gocd; then
-    local args="-v godata:/godata -w $(pwd)"
+    local args="-i -v godata:/godata -w $(pwd)"
   else
     local args="-i -v $(pwd):/workspace:cached -w /workspace"
   fi
