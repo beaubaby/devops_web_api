@@ -380,6 +380,7 @@ task_init_db() {
     export SUBENV_connection_string=postgresql://RDSUser:${secret}@${rds_endpoint}/postgres
     export SUBENV_connection_string_rds=postgresql://RDSUser:${secret}@${rds_endpoint}/loan_eligibility
 
+    env
 
     xenvsubst <infrastructure/k8s/template/init/createuser-loan-db.sql >output.sql
 
