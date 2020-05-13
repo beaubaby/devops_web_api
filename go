@@ -380,7 +380,7 @@ task_init_db() {
     export SUBENV_connection_string=postgresql://RDSUser:${secret}@${rds_endpoint}/postgres
     export SUBENV_connection_string_rds=postgresql://RDSUser:${secret}@${rds_endpoint}/loan_eligibility
 
-    xenvsubst <infrastructure/k8s/template/initdb.yaml >output.yaml
+
     xenvsubst <infrastructure/k8s/template/init/createuser-loan-db.sql >output.sql
 
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
@@ -391,6 +391,9 @@ task_init_db() {
     kubectl kubectl create configmap loan-schema-sql --from-file=infrastructure/k8s/template/init/revoke-schema.sql
 
     kubectl kubectl delete job loan-eligibility-service-init-db-job || true
+
+    xenvsubst <infrastructure/k8s/template/initdb.yaml >output.yaml
+    ls
     kubectl kubectl apply -f output.yaml
 
     kubectl kubectl delete secret loan-db-secret || true
