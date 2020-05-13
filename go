@@ -387,13 +387,14 @@ task_init_db() {
     cp ~/.kube/config ./infrastructure/k8s/config
     kubectl kubectl delete configmap loan-initdb-sql || true
     kubectl kubectl create configmap loan-initdb-sql --from-file=output.sql
+    cat output.sql
     kubectl kubectl delete configmap loan-schema-sql || true
     kubectl kubectl create configmap loan-schema-sql --from-file=infrastructure/k8s/template/init/revoke-schema.sql
 
     kubectl kubectl delete job loan-eligibility-service-init-db-job || true
 
     xenvsubst <infrastructure/k8s/template/initdb.yaml >output.yaml
-    ls
+    cat output.yaml
     kubectl kubectl apply -f output.yaml
 
     kubectl kubectl delete secret loan-db-secret || true
