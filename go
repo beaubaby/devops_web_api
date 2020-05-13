@@ -345,7 +345,7 @@ task_kube_apply() {
     assume_role $(account_id_for_name ${env}) "deploy-app"
 
     export SUBENV_LOAN_ELIGIBILITY_SERVICE_CONTAINER=${LOAN_ELIGIBILITY_SERVICE_CONTAINER}
-    export SUBENV_DB_CONNECTION_STRING=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text | grep ${env}-global)
+    export SUBENV_DB_CONNECTION_STRING=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text  --region ap-southeast-1 | grep ${env}-global)
     xenvsubst <infrastructure/k8s/template/deployment.yaml >infrastructure/k8s/template/output.yaml
     cd ${SCRIPT_DIR}/infrastructure/k8s
 
@@ -371,7 +371,6 @@ task_init_db() {
 
     export secret=$(aws secretsmanager get-secret-value --secret-id ${env}/coreplatform-db-secrets --query SecretString --output text --region ap-southeast-1)
     export rds_endpoint=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text --region ap-southeast-1 | grep ${env}-global)
-    env | grep rds_endpoint
     export SUBENV_loan_db_pass=$(aws secretsmanager get-secret-value --secret-id ${env}/loan-secrets --query SecretString --output text --region ap-southeast-1)
     export SUBENV_loan_db_pass_encoded=$(echo -n "${SUBENV_loan_db_pass}" | base64)
     export SUBENV_connection_string=postgresql://RDSUser:${secret}@${rds_endpoint}/postgres
@@ -381,8 +380,6 @@ task_init_db() {
 
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
     cp ~/.kube/config ./infrastructure/k8s/config
-    echo "cat output.sql"
-    cat output.sql
     kubectl kubectl delete configmap loan-initdb-sql || true
     kubectl kubectl create configmap loan-initdb-sql --from-file=output.sql
     kubectl kubectl delete configmap loan-schema-sql || true
@@ -391,8 +388,6 @@ task_init_db() {
     kubectl kubectl delete job loan-eligibility-service-init-db-job || true
 
     xenvsubst <infrastructure/k8s/template/initdb.yaml >output.yaml
-    echo "cat output.yaml"
-    cat output.yaml
     kubectl kubectl apply -f output.yaml
 
     kubectl kubectl delete secret loan-db-secret || true
