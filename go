@@ -361,14 +361,14 @@ task_init_db() {
     export connection_string_rds=postgresql://${DB_USER}:${secret}@${rds_endpoint}/loan_eligibility
 
     envsubst <infrastructure/k8s/template/initdb.yaml >output.yaml
-    envsubst '${loan_db_pass}' <toolchain-containers/init/createuser-loan-db.sql >output.sql
+    envsubst '${loan_db_pass}' <infrastructure/k8s/template/init/createuser-loan-db.sql >output.sql
 
     aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
     cp ~/.kube/config ./infrastructure/k8s/config
     kubectl kubectl delete configmap loan-initdb-sql || true
     kubectl kubectl create configmap loan-initdb-sql --from-file=output.sql
     kubectl kubectl delete configmap loan-schema-sql || true
-    kubectl kubectl create configmap loan-schema-sql --from-file=toolchain-containers/init/revoke-schema.sql
+    kubectl kubectl create configmap loan-schema-sql --from-file=infrastructure/k8s/template/init/revoke-schema.sql
 
     kubectl kubectl delete job loan-eligibility-service-init-db-job || true
     kubectl kubectl apply -f output.yaml
