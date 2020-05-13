@@ -1,5 +1,3 @@
-FROM alpine:3
-
-RUN apk add --update libintl && apk add --virtual build_deps gettext
-
-ENTRYPOINT [ "envsubst" ]
+FROM alpine
+RUN apk add --update --no-cache libintl gettext
+ENTRYPOINT ["/usr/bin/envsubst"]
