@@ -51,7 +51,7 @@ xenvsubst() {
     --hostname $(hostname) \
     -e "SUBENV_PG_FUNC=\$do\$" \
     --env-file <(env | grep SUBENV_) \
-    ${args} ${image_id} "$@"""
+    -i ${image_id} "$@"
 }
 
 docker_run() {
