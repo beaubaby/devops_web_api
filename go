@@ -392,6 +392,18 @@ task_init_db() {
   )
 }
 
+help__startDb="Start the database locally and bind port to port 5432"
+task_startDb() {
+  cd ${SCRIPT_DIR}/scripts
+  docker-compose up -d
+}
+
+task_stopDb() {
+  if docker ps | grep "loan_postgres_container" > /dev/null; then
+    docker stop loan_postgres_container
+  fi
+}
+
 ## main
 list_all_helps() {
   compgen -v | egrep "^help__.*"

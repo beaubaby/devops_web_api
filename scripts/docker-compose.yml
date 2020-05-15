@@ -1,0 +1,14 @@
+version: '3'
+services:
+  database:
+    container_name: loan_postgres_container
+    image: postgres:10.11
+    environment:
+      - "POSTGRES_PASSWORD=12345"
+      - db-data:/var/lib/postgres/data
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d/
+    ports:
+      - "5432:5432"
+volumes:
+  db-data:
