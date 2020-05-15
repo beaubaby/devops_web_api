@@ -11,6 +11,8 @@ spec:
       app: loan-eligibility
   template:
     metadata:
+      annotation:
+        ad.datadoghq.com/loan-eligibility.logs: '[{"source":"eks","service":"loan-eligibility"}]'
       labels:
         app: loan-eligibility
     spec:
