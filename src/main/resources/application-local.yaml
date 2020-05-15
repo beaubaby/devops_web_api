@@ -3,14 +3,14 @@ server:
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/loan_eligibility
-    username: postgres
+    username: loan_user
     password: 12345
     driverClassName: org.postgresql.Driver
   jpa:
     properties:
       hibernate:
         generate_statistics: true
-        ddl-auto: validate
+        ddl-auto: update
         jdbc:
           time_zone: UTC
     database-platform: org.hibernate.dialect.PostgreSQL94Dialect
