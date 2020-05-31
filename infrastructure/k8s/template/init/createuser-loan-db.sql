@@ -1,12 +1,12 @@
 DO
 $SUBENV_PG_FUNC
-BEGIN
-   IF NOT EXISTS (
-      SELECT FROM PG_USER
-      WHERE  USENAME = 'loan_user') THEN
-      CREATE USER LOAN_USER WITH PASSWORD '${SUBENV_loan_db_pass}';
-   END IF;
+begin
+   if not exists (
+      select from PG_USER
+      where  USENAME = 'loan_user') then
+      CREATE USER loan_user with PASSWORD '${SUBENV_loan_db_pass}';
+   end IF;
 
-   ALTER USER LOAN_USER WITH PASSWORD '${SUBENV_loan_db_pass}';
+   ALTER USER loan_user WITH PASSWORD '${SUBENV_loan_db_pass}';
 END
 $SUBENV_PG_FUNC;

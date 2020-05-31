@@ -12,7 +12,7 @@ spec:
         args:  
             - apk --update add postgresql-client && rm -rf /var/cache/apk/*;
               echo running_job;
-              psql ${SUBENV_connection_string} -tc "select 'create database loan_eligibility' where not exists (select from pg_database where datname='loan_eligibility')" | xargs -I % psql ${connection_string} -c %;
+              psql ${SUBENV_connection_string} -tc "select 'create database loan_eligibility' where not exists (select from pg_database where datname='loan_eligibility')" | xargs -I % psql ${SUBENV_connection_string} -c %;
               psql ${SUBENV_connection_string_rds} -f /script/output.sql;
               psql ${SUBENV_connection_string_rds} -f /schema_script/revoke-schema.sql;
         volumeMounts:
