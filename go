@@ -2,13 +2,12 @@
 
 set -e
 set -o pipefail
+SCRIPT_DIR=$(cd $(dirname $0) ; pwd -P)
 
 TASK=$1
 ARGS=${@:2}
 
 APP_NAME="demo"
-JAVA_DOCKER_IMAGE="adoptopenjdk/openjdk11:jdk-11.0.3_7"
-#JAVA_DOCKER_IMAGE="gradle:6.3-jdk11"
 TERRAFORM_DOCKER_IMAGE="hashicorp/terraform:0.12.8"
 
 docker_ensure_volume() {
@@ -20,6 +19,9 @@ docker_ensure_network() {
 }
 
 docker_run() {
+#  local args="-it -v $(pwd):/workspace:cached -w /workspace"
+  local image_id
+
   if [ -z "${DOCKER_IMAGE}" ]; then
     echo -n "Building toolchain container; this might take a while..."
     DOCKER_IMAGE=$(docker build ${DOCKER_BUILD_ARGS} . -q)
@@ -27,7 +29,6 @@ docker_run() {
   fi
 
   DOCKER_ARGS="${DOCKER_ARGS} -v ${HOME}/.aws:/root/.aws"
-
   docker run --rm \
     --hostname $(hostname) \
     --env-file <(env | grep AWS_) \
@@ -38,10 +39,16 @@ docker_run() {
 gradle() {
   docker_ensure_volume demo-gradle-cache
 
-  DOCKER_IMAGE="${JAVA_DOCKER_IMAGE}"
+  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.gradle"
   DOCKER_ARGS="${DOCKER_ARGS} -v demo-gradle-cache:/root/.gradle"
 
-  docker_run ./gradlew $@
+  docker_run gradle $@
+
+  docker build -t gradle -f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.gradle . -q
+  docker run -v demo-gradle-cache:/root/.gradle gradle gradle
+
+  local exit=$?
+  return $exit
 }
 
 tf() {
@@ -52,6 +59,7 @@ tf() {
 }
 
 # task gradle
+
 help__build="build to jar"
 task_build() {
   gradle assemble
@@ -67,7 +75,7 @@ task_fmt() {
   gradle ktlintFormat
 }
 
-help__test="test"
+help__test="clean up, test and verify code coverage"
 task_test() {
   gradle test
 }
@@ -91,6 +99,39 @@ task_stopDb() {
 }
 
 # task docker build and push
+
+help__dockerBuild="build docker image"
+task_dockerBuild() {
+  docker build \
+    --pull \
+    --label org.label-schema.vcs-ref=$(git rev-parse HEAD) \
+    -f Dockerfile.production \
+    -t ${APP_NAME} .
+}
+
+help__dockerPush="push docker image to ECR"
+task_dockerPush() {
+
+  local repo_url="252817234305.dkr.ecr.ap-southeast-1.amazonaws.com/api/demo/"
+  local latest_tag="${repo_url}:latest"
+  local revision=$(git rev-parse --short HEAD)
+  local revision_tag="${repo_url}:${revision}"
+
+  for tag in ${latest_tag} ${revision_tag};
+  do
+    docker tag ${APP_NAME} ${tag}
+  done
+  (
+    aws ecr get-login --no-include-email --region ap-southeast-1 | bash
+    docker push ${latest_tag}
+    docker push ${revision_tag}
+  )
+
+  local var_name="$(echo "${APP_NAME}" | tr "[:lower:]" "[:upper:]" | tr - _)_CONTAINER"
+  echo "${var_name}_TAG=${revision}" > ${APP_NAME}-container.info
+  echo "${var_name}=${revision_tag}" >> ${APP_NAME}-container.info
+}
+
 
 # task helper
 list_all_helps() {

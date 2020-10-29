@@ -20,4 +20,4 @@ variable "db_config" {
   )
 }
 
-
+variable "container_url" {}

@@ -43,3 +43,5 @@ config
 
 ## Generated From Go Script
 infrastructure/my_key_pair.pem
+# Ignore Gradle build output directory
+build

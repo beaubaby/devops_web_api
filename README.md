@@ -23,9 +23,17 @@ Alternatively,
  
 #### High-Level Infrastructure diagram #### 
 
+- Multi-tiers Module (Multi AZ)
+
+![](images/Multi-tiers_Architect.png)
+
+- Best practice conceptual (If it can be done)
+
 
  
 #### Deployment Instruction ####
+
+
 
 #### Usage
 
@@ -41,6 +49,13 @@ To test connection with own database
     ./go build
     ./go containerize
 
+or can be run (install gradle locally)
+
+```
+gradle build
+gradle test
+gradle dependency_check
+```
 
 2.Initial own database
    - Start DB local for dev application on local
@@ -52,8 +67,8 @@ To test connection with own database
 
 `-Dspring.profiles.active=local`
 
-4. Run 
+4.
 
-4.After test passed, can stop your database. Run
+5.After test passed, can stop your database. Run
 
     ./go stopDb

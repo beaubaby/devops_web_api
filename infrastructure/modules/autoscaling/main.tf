@@ -3,33 +3,24 @@ module "iam_instance_profile" {
   actions = ["logs:*", "rds:*"]
 }
 
-data "template_cloudinit_config" "config" {
-  gzip          = true
-  base64_encode = true
-  part {
-    content_type = "text/cloud-config"
-    content      = templatefile("${path.module}/cloud_config.yaml", var.db_config)
+data "template_file" "deploy_script" {
+  template = file("${path.module}/deploy.sh")
+  vars = {
+    deploy_environment     = var.environment_name
+    container_url          = var.container_url
   }
 }
 
-//data "template_file" "deploy_script" {
-//  template = file("${path.module}/deploy.sh")
-//  vars = {
-//    deploy_environment             = "${var.environment_name}"
-//
-//  }
-//}
 
+data "template_cloudinit_config" "deploy_script" {
+  base64_encode = true
+  gzip          = false
 
-//data "template_cloudinit_config" "devops_userdata" {
-//  base64_encode = true
-//  gzip          = false
-//
-//  part {
-//    content      = data.template_file.deploy_script.rendered
-//    content_type = "text/x-shellscript"
-//  }
-//}
+  part {
+    content      = data.template_file.deploy_script.rendered
+    content_type = "text/x-shellscript"
+  }
+}
 
 data "aws_ami" "ubuntu" {
   most_recent = true

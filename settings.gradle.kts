@@ -1,1 +1,1 @@
-rootProject.name = "api-example-demo"
+rootProject.name = "devops_web_api"
