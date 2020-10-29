@@ -1,7 +1,7 @@
-package com.ka.loaneligibility.backend.demo
+package api.example.demo.back.demo
 
-import com.ka.loaneligibility.backend.models.CarModel
-import com.ka.loaneligibility.backend.repositories.CarRepository
+import api.example.demo.back.models.CarModel
+import api.example.demo.back.repositories.CarRepository
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.GetMapping

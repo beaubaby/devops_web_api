@@ -1,6 +1,6 @@
-package com.ka.loaneligibility.backend.repositories
+package api.example.demo.back.repositories
 
-import com.ka.loaneligibility.backend.models.CarModel
+import api.example.demo.back.models.CarModel
 import javax.transaction.Transactional
 import org.springframework.data.repository.CrudRepository
 

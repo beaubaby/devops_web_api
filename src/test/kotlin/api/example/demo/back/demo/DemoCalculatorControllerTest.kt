@@ -1,4 +1,4 @@
-package com.ka.loaneligibility.backend.demo
+package api.example.demo.back.demo
 
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.FreeSpec

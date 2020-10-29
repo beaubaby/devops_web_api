@@ -34,21 +34,6 @@ runs_inside_gocd() {
   test -n "${GO_JOB_NAME}"
 }
 
-xenvsubst() {
-  local image_id
-  if [ -z "${image_id}" ]; then
-    image_id=$(docker build  -f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.envsubst . -q)
-  fi
-
-  docker run --rm \
-    -u "$(id -u)" \
-    --hostname $(hostname) \
-    -e "SUBENV_PG_FUNC=\$do\$" \
-    --env-file <(env | grep SUBENV_) \
-    --env-file <(env | grep AWS_) \
-    -i ${image_id} "$@"
-}
-
 docker_run() {
   local image_id
   if [ -z "${image_id}" ]; then

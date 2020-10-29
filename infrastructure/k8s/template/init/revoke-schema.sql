@@ -1,9 +1,0 @@
-DO
-$do$
-BEGIN
-    REVOKE ALL ON SCHEMA PUBLIC FROM PUBLIC;
-    REVOKE CONNECT ON DATABASE loan_eligibility FROM PUBLIC;
-    GRANT ALL PRIVILEGES ON DATABASE loan_eligibility TO loan_user;
-    GRANT ALL PRIVILEGES ON SCHEMA public TO loan_user;
-END
-$do$;

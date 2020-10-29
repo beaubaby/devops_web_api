@@ -1,4 +1,4 @@
-package com.ka.loaneligibility.backend.models
+package api.example.demo.back.models
 
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue

@@ -1,1 +1,1 @@
-rootProject.name = "loan-eligibility-service"
+rootProject.name = "api-example-demo"

@@ -1,11 +1,11 @@
-package com.ka.loaneligibility.backend
+package api.example.demo.back
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
-class LoanEligibilityServiceApplication
+class ServiceApplication
 
 fun main(args: Array<String>) {
-    runApplication<LoanEligibilityServiceApplication>(*args)
+    runApplication<ServiceApplication>(*args)
 }

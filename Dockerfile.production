@@ -1,5 +1,20 @@
-FROM openjdk:11
-COPY ./build/libs/loan-eligibility-service-0.0.1-SNAPSHOT.jar /loan-eligibility-service.jar
+FROM centos:8
+
+RUN yum remove -y vim-minimal
+
+RUN mkdir -p /usr/java && cd /usr/java && curl -L \
+        -o openjdk.tar.gz \
+        "https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.3%2B7/OpenJDK11U-jre_x64_linux_hotspot_11.0.3_7.tar.gz" && \
+    tar zxfv openjdk.tar.gz && \
+    ls /usr/java && \
+    ln -s /usr/java/jdk-11.0.3+7-jre/bin/java /usr/bin/java && \
+    ln -s /usr/java/jdk-11.0.3+7-jre/bin/keytool /usr/bin/keytool && \
+    rm openjdk.tar.gz
+
+RUN yum update -y && yum clean all
+RUN yum update -y dbus-libs
+
+COPY ./build/libs/contract-service-0.0.1-SNAPSHOT.jar /contract-service.jar
 WORKDIR /
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "loan-eligibility-service.jar"]
+ENTRYPOINT ["java", "-jar", "contract-service.jar"]
