@@ -1,172 +1,65 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
-
-SCRIPT_DIR=$(
-  cd $(dirname $0)
-  pwd -P
-)
+set -o pipefail
 
 TASK=$1
 ARGS=${@:2}
-## toolchain containerising helpers
 
-account_id_for_name() {
-  case $1 in
-  'dev') echo "259510286099" ;;
-  'qa') echo "259510286099" ;;
-  'uat') echo "259510286099" ;;
-  'prod') echo "978668668395" ;;
-  'tools') echo "688318228301" ;;
-  esac
-}
-
-account_for_env() {
-  case $1 in
-  'dev') echo "dev" ;;
-  'qa') echo "dev" ;;
-  'uat') echo "dev" ;;
-  'prod') echo "prod" ;;
-  esac
-}
-
-runs_inside_gocd() {
-  test -n "${GO_JOB_NAME}"
-}
-
-docker_run() {
-  local image_id
-  if [ -z "${image_id}" ]; then
-    echo -n "Building toolchain container; this might take a while..."
-    image_id=$(docker build ${DOCKER_BUILD_ARGS} . -q)
-    echo " Done."
-  fi
-
-  if runs_inside_gocd; then
-    local args="-v godata:/godata -w $(pwd)"
-  else
-    local args="-it -v $(pwd):/workspace:cached -w /workspace"
-  fi
-
-  DOCKER_ARGS="${DOCKER_ARGS} -v ${HOME}/.aws:/root/.aws"
-  docker run --rm \
-    -u "$(id -u)" \
-    --hostname $(hostname) \
-    --env-file <(env | grep JET_) \
-    --env-file <(env | grep AWS_) \
-    --env-file <(env | grep TF_) \
-    ${args} ${DOCKER_ARGS} ${image_id} "$@"
-}
+APP_NAME="demo"
+JAVA_DOCKER_IMAGE="adoptopenjdk/openjdk11:jdk-11.0.3_7"
+#JAVA_DOCKER_IMAGE="gradle:6.3-jdk11"
+TERRAFORM_DOCKER_IMAGE="hashicorp/terraform:0.12.8"
 
 docker_ensure_volume() {
   docker volume inspect $1 >/dev/null 2>&1 || docker volume create $1 >/dev/null 2>&1
 }
 
 docker_ensure_network() {
-  network_name=$1
-  if [ ! "$(docker network ls | grep ${network_name})" ]; then
-    echo "Creating ${network_name} network ..."
-    docker network create ${network_name}
+  docker network inspect $1 >/dev/null 2>&1 || docker network create $1 >/dev/null 2>&1
+}
+
+docker_run() {
+  if [ -z "${DOCKER_IMAGE}" ]; then
+    echo -n "Building toolchain container; this might take a while..."
+    DOCKER_IMAGE=$(docker build ${DOCKER_BUILD_ARGS} . -q)
+    echo " Done."
   fi
+
+  DOCKER_ARGS="${DOCKER_ARGS} -v ${HOME}/.aws:/root/.aws"
+
+  docker run --rm \
+    --hostname $(hostname) \
+    --env-file <(env | grep AWS_) \
+    --env-file <(env | grep TF_) \
+    ${DOCKER_ARGS} ${DOCKER_IMAGE} "$@"
 }
 
 gradle() {
-  docker_ensure_volume gradle-cache
+  docker_ensure_volume demo-gradle-cache
 
-  cd ${SCRIPT_DIR}
+  DOCKER_IMAGE="${JAVA_DOCKER_IMAGE}"
+  DOCKER_ARGS="${DOCKER_ARGS} -v demo-gradle-cache:/root/.gradle"
 
-  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.gradle"
-  DOCKER_ARGS="${DOCKER_ARGS} -v gradle-cache:/home/gradle/.gradle"
-
-  docker_run "$@"
-
-  local exit=$?
-  cd - >/dev/null
-  return $exit
-}
-
-push-container() {
-  local repo_url="$1"
-  local app_name=$2
-
-  aws ecr get-login --no-include-email --region ap-southeast-1 | bash
-
-  local revision_tag=$(git rev-parse --short HEAD)
-
-  for tag in "latest" ${revision_tag}; do
-    docker tag ${app_name}:latest ${repo_url}:$tag
-    docker push ${repo_url}:$tag
-  done
-
-  local var_name="$(echo "${app_name}" | tr "[:lower:]" "[:upper:]" | tr - _)_CONTAINER"
-
-  echo "${var_name}_TAG=${revision_tag}" >${app_name}-container.info
-  echo "${var_name}=${repo_url}:${revision_tag}" >>${app_name}-container.info
+  docker_run ./gradlew $@
 }
 
 tf() {
-  if runs_inside_gocd; then
-    local docker_user_args="-u $(id -u)"
-  else
-    local docker_user_args=""
-  fi
-
-  DOCKER_ARGS="${DOCKER_ARGS} ${docker_user_args}"
-  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.terraform"
-  docker_run "$@"
-}
-
-terraform() {
-  cd ${SCRIPT_DIR}/infrastructure/app
-  tf "$@"
-  local exit=$?
-  cd - >/dev/null
-  return $exit
-}
-
-kubectl() {
-
-  DOCKER_BUILD_ARGS="-f ${SCRIPT_DIR}/toolchain-containers/Dockerfile.kubernetes"
+  DOCKER_IMAGE="${TERRAFORM_DOCKER_IMAGE}"
+  DOCKER_ARGS="${DOCKER_ARGS}"
 
   docker_run "$@"
-
-  local exit=$?
-  return $exit
 }
 
-terraform_ecr() {
-  cd ${SCRIPT_DIR}/infrastructure/ecr
-  tf "$@"
-  local exit=$?
-  cd - >/dev/null
-  return $exit
+# task gradle
+help__build="build to jar"
+task_build() {
+  gradle assemble
 }
 
-add_container_tag() {
-  local repository_name=$1
-  local image_tag=$2
-  local new_image_tag=$3
-
-  (
-    assume_role $(account_id_for_name "tools") "push-containers"
-
-    local image_manifest=$(aws ecr batch-get-image --region ap-southeast-1 \
-      --repository-name ${repository_name} \
-      --image-ids imageTag=${image_tag} \
-      --query 'images[].imageManifest' \
-      --output text)
-
-    aws ecr put-image --region ap-southeast-1 \
-      --repository-name ${repository_name} \
-      --image-tag "${new_image_tag}" \
-      --image-manifest "${image_manifest}"
-  )
-}
-
-## tasks
-help__lint="checking code format"
+help__lint="analyzes code for stylistic errors and suspicious constructs"
 task_lint() {
-  gradle ktlint
+  gradle ktlintCheck
 }
 
 help__fmt="format kotlin code style for cleanliness"
@@ -174,208 +67,32 @@ task_fmt() {
   gradle ktlintFormat
 }
 
-help__test="clean up, test and verify code coverage"
+help__test="test"
 task_test() {
   gradle test
 }
 
-help__build="build jar"
-task_build() {
-  gradle build
-}
-
-help__dependency_check="check security on dependencies"
-task_dependency_check() {
-  gradle dependencyCheckAnalyze
-}
-
-help__static_check="check security on static codes"
-task_static_check() {
-  gradle check
-}
-
-help__running_app="running application"
-task_running_app() {
-  gradle clean bootRun
-}
-
-help__containerize="containerize application into docker image"
-task_containerize() {
-  docker build --pull -f ${SCRIPT_DIR}/Dockerfile.production -t loan-eligibility-service .
-}
-
-help__push_container="push image to ECR"
-task_push_container() {
-  push-container "688318228301.dkr.ecr.ap-southeast-1.amazonaws.com/coreplatform/loan-eligibility-service" loan-eligibility-service
-}
-
-help__apply="Provision Database secret manager"
-task_apply() {
-  local env=$1
-  local account=$(account_for_env $env)
-
-  if [ -z "${env}" ]; then
-    echo "Needs environment"
-    exit 1
-  fi
-
-  cd ${SCRIPT_DIR}/infrastructure/secret-db
-  if runs_inside_gocd; then
-    args="-auto-approve"
-  else
-    args=""
-  fi
-
-  tf init
-  tf workspace select $env || tf workspace new $env
-  tf apply -var-file $env.tfvars $args
-
-  cd - >/dev/null
-}
-
-help__destroy="Destroy Database secret manager"
-task_destroy() {
-  local env=$1
-  local account=$(account_for_env $env)
-
-  if [ -z "${env}" ]; then
-    echo "Needs environment"
-    exit 1
-  fi
-
-  cd ${SCRIPT_DIR}/infrastructure/secret-db
-  if runs_inside_gocd; then
-    args="-auto-approve"
-  else
-    args=""
-  fi
-
-  tf init
-  tf workspace select $env || tf workspace new $env
-  tf destroy -var-file $env.tfvars $args
-
-  cd - >/dev/null
-}
-
-help__plan="Plan Database secret manager"
-task_plan() {
-  local env=$1
-  local account=$(account_for_env $env)
-
-  if [ -z "${env}" ]; then
-    echo "Needs environment"
-    exit 1
-  fi
-
-  cd ${SCRIPT_DIR}/infrastructure/secret-db
-  if runs_inside_gocd; then
-    args="-auto-approve"
-  else
-    args=""
-  fi
-
-  tf init
-  tf workspace select $env || tf workspace new $env
-  tf plan -var-file $env.tfvars $args
-
-  cd - >/dev/null
-}
-
-help__infrastructure_apply_ecr="provision ecr"
-task_infrastructure_apply_ecr() {
-  if runs_inside_gocd; then
-    local args="-auto-approve"
-  else
-    local args=""
-  fi
-
-  terraform_ecr init
-  terraform_ecr apply $args
-}
-
-help__kube_apply="kubectl apply deployment"
-task_kube_apply() {
-  local env=$1
-
-  source loan-eligibility-service-container.info
-  if [ -z "${LOAN_ELIGIBILITY_SERVICE_CONTAINER}" ]; then
-    echo "expected LOAN_ELIGIBILITY_SERVICE_CONTAINER"
-    exit 1
-  fi
-
-  if [ -z "${env}" ]; then
-    echo "Needs environment"
-    exit 1
-  fi
-
-  (
-    assume_role $(account_id_for_name ${env}) "deploy-app"
-
-    export SUBENV_LOAN_ELIGIBILITY_SERVICE_CONTAINER=${LOAN_ELIGIBILITY_SERVICE_CONTAINER}
-    export SUBENV_DB_CONNECTION_STRING=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text  --region ap-southeast-1 | grep ${env}-global)
-    xenvsubst <infrastructure/k8s/template/deployment.yaml >infrastructure/k8s/template/output.yaml
-    cd ${SCRIPT_DIR}/infrastructure/k8s
-
-    if runs_inside_gocd; then
-      args="-auto-approve"
-    else
-      args=""
-    fi
-
-    aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
-    cd - >/dev/null
-    cp ~/.kube/config ./infrastructure/k8s/config
-    kubectl kubectl apply -f infrastructure/k8s/template/output.yaml
-    kubectl kubectl apply -f infrastructure/k8s/template/service.yaml
-  )
-}
-
-help__init_db="docker to initial database"
-task_init_db() {
-  local env=$1
-  (
-    assume_role $(account_id_for_name ${env}) "deploy-app"
-
-    export secret=$(aws secretsmanager get-secret-value --secret-id ${env}/coreplatform-db-secrets --query SecretString --output text --region ap-southeast-1)
-    export rds_endpoint=$(aws rds describe-db-clusters --query '*[].{Endpoint:Endpoint}' --output=text --region ap-southeast-1 | grep ${env}-global)
-    export SUBENV_loan_db_pass=$(aws secretsmanager get-secret-value --secret-id ${env}/loan-secrets --query SecretString --output text --region ap-southeast-1)
-    export SUBENV_loan_db_pass_encoded=$(echo -n "${SUBENV_loan_db_pass}" | base64)
-    export SUBENV_connection_string=postgresql://RDSUser:${secret}@${rds_endpoint}/postgres
-    export SUBENV_connection_string_rds=postgresql://RDSUser:${secret}@${rds_endpoint}/loan_eligibility
-
-    xenvsubst <infrastructure/k8s/template/init/createuser-loan-db.sql >output.sql
-
-    aws eks --region ap-southeast-1 update-kubeconfig --name ${env}_eks_cluster
-    cp ~/.kube/config ./infrastructure/k8s/config
-    kubectl kubectl delete configmap loan-initdb-sql || true
-    kubectl kubectl create configmap loan-initdb-sql --from-file=output.sql
-    kubectl kubectl delete configmap loan-schema-sql || true
-    kubectl kubectl create configmap loan-schema-sql --from-file=infrastructure/k8s/template/init/revoke-schema.sql
-
-    kubectl kubectl delete job loan-eligibility-service-init-db-job || true
-
-    xenvsubst <infrastructure/k8s/template/initdb.yaml >output.yaml
-    kubectl kubectl apply -f output.yaml
-
-    kubectl kubectl delete secret loan-db-secret || true
-    xenvsubst <infrastructure/k8s/template/db-secret.yaml >db-secret.yaml
-    kubectl kubectl apply -f db-secret.yaml
-  )
-}
-
-help__startDb="Start the database locally and bind port to port 5432"
+# task local database
+help__startDb="Start the database locally and bind port to port 3306"
 task_startDb() {
-  cd ${SCRIPT_DIR}/scripts
+  task_stopDb
+
+  mkdir -p data
+  docker_ensure_network postgres_container
+
+  cd scripts/
   docker-compose up -d
 }
 
 task_stopDb() {
-  if docker ps | grep "loan_postgres_container" > /dev/null; then
-    docker stop loan_postgres_container
+  if docker ps | grep "postgres_container" > /dev/null; then
+    docker stop postgres_container
   fi
 }
 
-## main
+# task docker build and push
+
+# task helper
 list_all_helps() {
   compgen -v | egrep "^help__.*"
 }
@@ -388,7 +105,8 @@ else
   echo "task:"
 
   HELPS=""
-  for help in $(list_all_helps); do
+  for help in $(list_all_helps)
+  do
 
     HELPS="$HELPS    ${help/help__/} |-- ${!help}$NEW_LINE"
   done

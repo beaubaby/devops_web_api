@@ -1,22 +1,37 @@
-## LOAN_ELIGIBILITY_SERVICE (SKELETON)
+# DevOps Instruction - Web application
 
-This repo contains resources and database configuration scripts for building microservices on AWS EKS cluster in Topup Coreplatfrom
+For detailed explanation on how things work with kotlin spring boot build instruction on pipeline. I've used `bash` script in the main focus.
 
-It's separate 3 paths 
+## Infrastructure as a Code on AWS Cloud Platform.
 
-- Containerize microservice packages including application configuration and source code.
-- Initialize own database, user, password and grant privilege to it including keep the password in [AWS secret manager](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html).
-- Apply microservice connect to [AWS RDS](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html) cluster each environment.
+1.  Create a Github repository for the code they have written (including actions based build workflow)
 
-###### Note: Refer RDS cluster in [RDS Cluster repository](https://gitlab.tools.buk0.com/core-platform/rds-cluster)
+`git clone https://github.com/beaubaby/devops_web_api.git`
+
+2.  Install terraform and author the following on any cloud provider
+
+ * Additional non-default VPC with internet gateway and route table 
+ * Private and Public Subnets
+ * SSH Key Setup
+ * Virtual Compute instances that run a web service
+ * Virtual Compute instances that run a database for leveraging an external source such as RDS
+ * Render a simple website that shows information being either pulled out of the data layer or from some 3rd party API
+ * Logging enabled to a central place
+
+Alternatively,
+ - All of the above, but running on EKS, GKE, or AKS.
+ 
+#### High-Level Infrastructure diagram #### 
+
+
+ 
+#### Deployment Instruction ####
 
 #### Usage
 
 To test connection with own database
 
-- Test on local
-
-1.Containerize microservice source code. Run test before containerize.
+1.Containerize source code. Run test before containerize.
 
 
     ./go lint
@@ -25,7 +40,6 @@ To test connection with own database
     ./go static_check
     ./go build
     ./go containerize
-
 
 
 2.Initial own database
@@ -38,18 +52,8 @@ To test connection with own database
 
 `-Dspring.profiles.active=local`
 
+4. Run 
+
 4.After test passed, can stop your database. Run
 
     ./go stopDb
-
-
-###### Note:
-
-if you need to update some database config. you can update file `/script/init/init-postgres-db.sql`
-
-### Reference GOCD pipeline
-
-loan-eligibility-service : https://gocd-server.tools.buk0.com/go/tab/pipeline/history/loan-eligibility-service
-
-
-RDS Cluster: https://gocd-server.tools.buk0.com/go/tab/pipeline/history/rds-cluster

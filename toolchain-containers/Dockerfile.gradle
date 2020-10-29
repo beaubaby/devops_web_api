@@ -1,3 +1,0 @@
-FROM gradle:6.2.2
-WORKDIR /backend
-ENTRYPOINT ["gradle"]
