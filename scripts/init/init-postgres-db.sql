@@ -1,2 +1,11 @@
-CREATE DATABASE loan_eligibilty;
-CREATE USER loan_user WITH PASSWORD '12345';
+CREATE
+    DATABASE loan WITH ENCODING = 'UTF8';
+
+\c loan;
+
+CREATE
+    SCHEMA IF NOT EXISTS "loan" AUTHORIZATION "postgres";
+
+ALTER USER postgres
+    SET
+    search_path TO loan;

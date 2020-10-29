@@ -25,14 +25,6 @@ class DemoCalculatorController(val calculator: DemoCalculator, val restTemplate:
         return calculator.plus(body.a, body.b)
     }
 
-    @GetMapping("/get-vehicle")
-    fun hello(): Vehicle? {
-        val url = "http://loan-eligibility-svc:8080/demo/vehicle"
-        var result: Vehicle? = restTemplate.getForObject<Vehicle>(url, Vehicle::class.java)
-        result!!.miles = 2500
-        return result
-    }
-
     @GetMapping("/vehicle")
     fun vehicle(): Vehicle {
         return Vehicle()
