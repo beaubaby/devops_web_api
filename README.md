@@ -90,3 +90,4 @@ Containerize docker in production and then push to ecr (Currently,still cannot i
 - As posible, we should do frontend with serverless API using fargate and backend replace with EKS
 - Have to change database to aurora to easy to manage and can automatically redundant to master node and read node. Also Multi AZ
 - Should create Cloudwatch to collect centralize logs
+- Think about DevSecOps pipeline, I've used cliare to container image scanning, nexpose scan in EC2 image, hawkeyes in frontend vulnerability check about file content and security bug etc.
