@@ -85,23 +85,9 @@ gradle() {
   return $exit
 }
 
-assume_role() {
-  account_id="$1"
-  role="$2"
-
-  credentials=$(aws sts assume-role --role-arn "arn:aws:iam::${account_id}:role/${role}" \
-    --role-session-name initial --duration-seconds 2700 | jq '.Credentials')
-  export AWS_ACCESS_KEY_ID=$(echo "${credentials}" | jq -r .AccessKeyId)
-  export AWS_SECRET_ACCESS_KEY=$(echo "${credentials}" | jq -r .SecretAccessKey)
-  export AWS_SESSION_TOKEN=$(echo "${credentials}" | jq -r .SessionToken)
-  unset AWS_SECURITY_TOKEN
-}
-
 push-container() {
   local repo_url="$1"
   local app_name=$2
-
-  assume_role $(account_id_for_name "tools") "push-containers"
 
   aws ecr get-login --no-include-email --region ap-southeast-1 | bash
 
