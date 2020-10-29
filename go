@@ -9,6 +9,7 @@ ARGS=${@:2}
 
 APP_NAME="demo"
 TERRAFORM_DOCKER_IMAGE="hashicorp/terraform:0.12.8"
+CONTAINER_URL="252817234305.dkr.ecr.ap-southeast-1.amazonaws.com/demo"
 
 docker_ensure_volume() {
   docker volume inspect $1 >/dev/null 2>&1 || docker volume create $1 >/dev/null 2>&1
@@ -58,11 +59,27 @@ tf() {
   docker_run "$@"
 }
 
+terraform_ecr() {
+  cd ${SCRIPT_DIR}/infrastructure/ecr
+  tf "$@"
+  local exit=$?
+  cd - >/dev/null
+  return $exit
+}
+
+terraform_app() {
+  cd ${SCRIPT_DIR}/infrastructure/
+  tf "$@"
+  local exit=$?
+  cd - >/dev/null
+  return $exit
+}
+
 # task gradle
 
 help__build="build to jar"
 task_build() {
-  gradle assemble
+  gradle build
 }
 
 help__lint="analyzes code for stylistic errors and suspicious constructs"
@@ -100,38 +117,67 @@ task_stopDb() {
 
 # task docker build and push
 
-help__dockerBuild="build docker image"
-task_dockerBuild() {
-  docker build \
-    --pull \
-    --label org.label-schema.vcs-ref=$(git rev-parse HEAD) \
-    -f Dockerfile.production \
-    -t ${APP_NAME} .
+help__containerize="containerize application into docker image"
+task_containerize() {
+    docker build --pull --label org.label-schema.vcs-ref=$(git rev-parse HEAD) -f ${SCRIPT_DIR}/Dockerfile.production -t demo .
 }
 
-help__dockerPush="push docker image to ECR"
-task_dockerPush() {
+help__infrastructure_apply_ecr="provision ecr"
+task_infrastructure_apply_ecr() {
 
-  local repo_url="252817234305.dkr.ecr.ap-southeast-1.amazonaws.com/api/demo/"
-  local latest_tag="${repo_url}:latest"
-  local revision=$(git rev-parse --short HEAD)
-  local revision_tag="${repo_url}:${revision}"
+  terraform_ecr init
+  terraform_ecr apply $args
+}
 
-  for tag in ${latest_tag} ${revision_tag};
-  do
-    docker tag ${APP_NAME} ${tag}
+push_container() {
+  local repo_url="$1"
+  local app_name=$2
+
+  aws ecr get-login --no-include-email --region ap-southeast-1 | bash
+
+  local revision_tag=$(git rev-parse --short HEAD)
+
+  for tag in "latest" ${revision_tag}; do
+    docker tag ${app_name}:latest ${repo_url}:$tag
+    docker push ${repo_url}:$tag
   done
-  (
-    aws ecr get-login --no-include-email --region ap-southeast-1 | bash
-    docker push ${latest_tag}
-    docker push ${revision_tag}
-  )
 
-  local var_name="$(echo "${APP_NAME}" | tr "[:lower:]" "[:upper:]" | tr - _)_CONTAINER"
-  echo "${var_name}_TAG=${revision}" > ${APP_NAME}-container.info
-  echo "${var_name}=${revision_tag}" >> ${APP_NAME}-container.info
+  local var_name="$(echo "${app_name}" | tr "[:lower:]" "[:upper:]" | tr - _)_CONTAINER"
+
+  echo "${var_name}_TAG=${revision_tag}" > ${app_name}-container.info
+  echo "${var_name}=${repo_url}:${revision_tag}" >> ${app_name}-container.info
 }
 
+help__push_container="push image to ECR"
+task_push_container() {
+  push_container "252817234305.dkr.ecr.ap-southeast-1.amazonaws.com/demo" demo
+}
+
+help__infrastructure_apply_app="provision app infra"
+task_infrastructure_apply_app() {
+  local env=$1
+
+  if [ -z "${env}" ] ; then
+    echo "Needs environment"
+    exit 1
+  fi
+
+  source topup-backend-container.info
+
+  if [ -z "${TOPUP_BACKEND_CONTAINER}" ]; then
+    echo "expected TOPUP_BACKEND_CONTAINER"
+    exit 1
+  fi
+
+  terraform_app init
+  terraform_app workspace select $env || terraform_app workspace new $env
+
+  terraform_app apply -var-file $env.tfvars \
+                -var application_image_url=${CONTAINER_URL} \
+                $restore_args $args
+
+  cd - >/dev/null
+}
 
 # task helper
 list_all_helps() {

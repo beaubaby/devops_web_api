@@ -3,6 +3,15 @@ module "iam_instance_profile" {
   actions = ["logs:*", "rds:*"]
 }
 
+//data "template_cloudinit_config" "config" {
+//  gzip          = true
+//  base64_encode = true
+//  part {
+//    content_type = "text/cloud-config"
+//    content      = templatefile("${path.module}/cloud_config.yaml", var.db_config)
+//  }
+//}
+
 data "template_file" "deploy_script" {
   template = file("${path.module}/deploy.sh")
   vars = {
@@ -35,7 +44,7 @@ resource "aws_launch_template" "webserver" {
   name_prefix   = "${var.environment_name}-devops-web-server"
   image_id      = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
-  user_data     = data.template_cloudinit_config.config.rendered
+  user_data     = data.template_cloudinit_config.deploy_script.rendered
   key_name      = var.key_name
   iam_instance_profile {
     name = module.iam_instance_profile.name

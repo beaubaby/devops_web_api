@@ -29,13 +29,9 @@ Alternatively,
 
 - Best practice conceptual (If it can be done)
 
-
+![](images/Future%20concetual.jpeg)
  
 #### Deployment Instruction ####
-
-
-
-#### Usage
 
 To test connection with own database
 
@@ -47,15 +43,22 @@ To test connection with own database
     ./go dependency_check
     ./go static_check
     ./go build
-    ./go containerize
 
 or can be run (install gradle locally)
 
 ```
-gradle build
+gradle lint
 gradle test
-gradle dependency_check
+gradle ktlintCheck
+gradle build
 ```
+
+Containerize docker in production and then push to ecr (Currently,still cannot implement it on time)
+
+    ./go infrastructure_apply_ecr
+    ./go containerize
+    ./go push_container
+
 
 2.Initial own database
    - Start DB local for dev application on local
@@ -67,8 +70,23 @@ gradle dependency_check
 
 `-Dspring.profiles.active=local`
 
-4.
-
-5.After test passed, can stop your database. Run
+4.After test passed, can stop your database. Run
 
     ./go stopDb
+
+5.Deploy application to each environment
+
+```
+./go infrastructure_apply_app
+```
+
+### Tech debt. 
+
+- Need to create iam role to awsume to deploy out application to gain more secure and protect others attrack to our platform
+- Need to have cloudfront (CDN) to connect to S3 and restrict S3 to private Cloud
+- Need to create S3 to keep frontend data
+- Need to initial database with script before run pipeline to deploy infrastrcture each environment
+- Need to have API GATEWAY makes it easy to deploy scalable and secure APIs.
+- As posible, we should do frontend with serverless API using fargate and backend replace with EKS
+- Have to change database to aurora to easy to manage and can automatically redundant to master node and read node. Also Multi AZ
+- Should create Cloudwatch to collect centralize logs
