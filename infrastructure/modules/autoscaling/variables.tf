@@ -1,9 +1,5 @@
 variable "environment_name" {}
 
-variable "key_name" {
-  default = "my_key_pair"
-}
-
 variable "vpc" {}
 
 variable "sg" {}
